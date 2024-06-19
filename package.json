@@ -11,5 +11,9 @@
   "devDependencies": {
     "typescript": "^5.2.2",
     "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "pocketbase": "^0.21.3",
+    "solit": "file:solit-0.0.0.tgz"
   }
 }
