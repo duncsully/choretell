@@ -1,22 +1,17 @@
 import { Context, component, effect, html, signal } from 'solit'
 import PocketBase from 'pocketbase'
 import { when } from 'lit-html/directives/when.js'
-import '@material/web/textfield/filled-text-field.js'
-import '@material/web/icon/icon.js'
-import '@material/web/iconbutton/icon-button.js'
-import '@material/web/button/filled-button.js'
-import '@material/web/button/filled-tonal-button.js'
+import '@ionic/core/css/palettes/dark.system.css'
 
 // TODO: Breakup into smaller components
-// TODO: Figure out dark theme
 // TODO: Better styling solution?
+// TODO: Bundle ionic components properly?
 
 export const pbContext = new Context({} as PocketBase)
 
 export const App = component(() => {
   const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL)
   const loggedIn = signal(pb.authStore.isValid)
-  const showPassword = signal(false)
 
   effect(() => {
     return pb.authStore.onChange(() => loggedIn.set(pb.authStore.isValid), true)
@@ -51,60 +46,83 @@ export const App = component(() => {
   }
 
   return pbContext.provide(pb, () => {
-    return html`${() =>
-      when(
-        loggedIn.get(),
-        () => html` <p>Hello</p>
-          <button @click=${() => pb.authStore.clear()}>Logout</button>`,
-        () => html`
-          <form @submit=${handleForm}>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-              <md-filled-text-field
-                label="Email"
-                type="email"
-                name="username"
-                inputmode="email"
-                required
-                no-asterisk
-              ></md-filled-text-field>
-              <md-filled-text-field
-                label="Password"
-                type=${() => (showPassword.get() ? 'text' : 'password')}
-                name="password"
-                required
-                no-asterisk
-              >
-                <md-icon-button
-                  type="button"
-                  toggle
-                  slot="trailing-icon"
-                  @input=${() => {
-                    showPassword.update((v) => !v)
-                  }}
+    return html`
+      <ion-app>
+        ${() =>
+          when(
+            loggedIn.get(),
+            () => html`
+              <ion-header>
+                <ion-toolbar>
+                  <ion-title>Choretell</ion-title>
+                  <ion-buttons slot="end">
+                    <ion-button @click=${() => pb.authStore.clear()}>
+                      Logout
+                      <ion-icon slot="end" name="log-out-outline"></ion-icon>
+                    </ion-button>
+                  </ion-buttons>
+                </ion-toolbar>
+              </ion-header>
+              <ion-content> </ion-content>
+            `,
+            () => html`
+              <ion-content>
+                <ion-row
+                  class="ion-justify-content-center ion-align-items-center"
+                  style="flex-direction: column; height: 100%;"
                 >
-                  <md-icon>visibility</md-icon>
-                  <md-icon slot="selected">visibility_off</md-icon>
-                </md-icon-button>
-              </md-filled-text-field>
-              <div>
-                <md-filled-button
-                  type="submit"
-                  formaction="login"
-                  value="login"
-                >
-                  Login
-                </md-filled-button>
-                <md-filled-tonal-button
-                  type="submit"
-                  formaction="register"
-                  value="register"
-                >
-                  Register
-                </md-filled-tonal-button>
-              </div>
-            </div>
-          </form>
-        `
-      )}`
+                  <ion-text color="primary">
+                    <h1>Welcome to Choretell!</h1>
+                  </ion-text>
+                  <ion-card>
+                    <ion-card-content>
+                      <form
+                        @submit=${handleForm}
+                        style="display: flex; flex-direction: column; gap: 8px;"
+                      >
+                        <ion-input
+                          label="Email"
+                          label-placement="stacked"
+                          placeholder="Enter email address"
+                          type="email"
+                          name="username"
+                          inputmode="email"
+                          fill="outline"
+                          required
+                        ></ion-input>
+                        <ion-input
+                          label="Password"
+                          label-placement="stacked"
+                          placeholder="Enter password"
+                          type="password"
+                          name="password"
+                          fill="outline"
+                          required
+                        >
+                          <ion-input-password-toggle
+                            slot="end"
+                          ></ion-input-password-toggle>
+                        </ion-input>
+                        <div style="margin: 0 auto">
+                          <ion-button type="submit" formaction="login">
+                            Login
+                          </ion-button>
+                          <ion-button
+                            type="submit"
+                            formaction="register"
+                            color="secondary"
+                          >
+                            Register
+                          </ion-button>
+                        </div>
+                      </form>
+                    </ion-card-content>
+                  </ion-card>
+                </ion-row>
+              </ion-content>
+            `
+          )}
+      </ion-app>
+    `
   })
 })
