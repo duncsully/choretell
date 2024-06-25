@@ -4,6 +4,7 @@ import { pb } from '../../globals'
 import { ref, createRef, type Ref } from 'lit-html/directives/ref.js'
 import { repeat } from 'lit-html/directives/repeat.js'
 
+// TODO: Confirmation when dismissing modal with unsaved changes
 export const ChoreListPage = component(() => {
   const items = signal([] as ChoresResponse[])
 
@@ -18,7 +19,7 @@ export const ChoreListPage = component(() => {
     return () => unsub.then((u) => u())
   })
 
-  const [done, notDone] = computedGroup(() =>
+  const [notDone, done] = computedGroup(() =>
     items.get().reduce<[ChoresResponse[], ChoresResponse[]]>(
       (results, item) => {
         results[+item.done].push(item)
@@ -30,6 +31,7 @@ export const ChoreListPage = component(() => {
 
   const isAdding = signal(false)
 
+  // TODO: Refactor to just regenerate the form?
   let formRef: Ref<HTMLFormElement> = createRef()
   const resetForm = () => {
     isAdding.set(false)
@@ -61,11 +63,6 @@ export const ChoreListPage = component(() => {
       </ion-toolbar>
     </ion-header>
     <ion-content class="ion-padding" fixed-slot-placement="before">
-      <ion-fab slot="fixed" vertical="bottom" horizontal="end">
-        <ion-fab-button @click=${() => isAdding.set(true)}>
-          <ion-icon name="add"></ion-icon>
-        </ion-fab-button>
-      </ion-fab>
       <ion-list>
         ${() => repeat(notDone.get(), (item) => item.id, Item)}
       </ion-list>
@@ -79,6 +76,11 @@ export const ChoreListPage = component(() => {
           </ion-list>
         </ion-accordion>
       </ion-accordion-group>
+      <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+        <ion-fab-button @click=${() => isAdding.set(true)}>
+          <ion-icon name="add"></ion-icon>
+        </ion-fab-button>
+      </ion-fab>
       <ion-modal
         .isOpen=${isAdding}
         @didDismiss=${resetForm}
