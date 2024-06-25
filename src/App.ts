@@ -1,3 +1,4 @@
+import { when } from 'lit-html/directives/when.js'
 import { component, effect, html, signal } from 'solit'
 import '@ionic/core/css/palettes/dark.system.css'
 import { LoginPage } from './pages/Login/Login'
@@ -15,6 +16,6 @@ export const App = component(() => {
   })
 
   return html`
-    <ion-app>${() => (loggedIn.get() ? ChoreListPage() : LoginPage())}</ion-app>
+    <ion-app>${() => when(loggedIn.get(), ChoreListPage, LoginPage)}</ion-app>
   `
 })

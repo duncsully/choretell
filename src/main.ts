@@ -1,4 +1,4 @@
 import { App } from './App'
-import { render } from 'solit'
+import { render } from 'lit-html'
 
 render(App(), document.querySelector<HTMLDivElement>('#app')!)
