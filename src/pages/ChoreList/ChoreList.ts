@@ -1,18 +1,39 @@
+import { ChoresResponse } from './../../../pocketbase-types'
 import { component, computedGroup, effect, html, signal } from 'solit'
 import { pb } from '../../globals'
-import { styleMap } from 'lit-html/directives/style-map.js'
-//import { ref, createRef, type Ref } from 'lit/directives/ref.js'
-//import { repeat } from 'lit/directives/repeat.js'
-import { ChoresResponse } from '../../../pocketbase-types'
+import { ref, createRef, type Ref } from 'lit-html/directives/ref.js'
+import { repeat } from 'lit-html/directives/repeat.js'
 
 export const ChoreListPage = component(() => {
+  const items = signal([] as ChoresResponse[])
+
+  effect(() => {
+    const getItems = () => {
+      console.log('fetching chores')
+      pb.collection('chores').getFullList().then(items.set)
+    }
+    getItems()
+    // TODO: Not efficient, but works for now
+    const unsub = pb.collection('chores').subscribe('*', getItems)
+    return () => unsub.then((u) => u())
+  })
+
+  const [done, notDone] = computedGroup(() =>
+    items.get().reduce<[ChoresResponse[], ChoresResponse[]]>(
+      (results, item) => {
+        results[+item.done].push(item)
+        return results
+      },
+      [[], []]
+    )
+  )
+
   const isAdding = signal(false)
 
-  const handleDismiss = (e: Event) => {
+  let formRef: Ref<HTMLFormElement> = createRef()
+  const resetForm = () => {
     isAdding.set(false)
-    const form = (e.target as HTMLElement)?.querySelector(
-      'form'
-    ) as HTMLFormElement
+    const form = formRef.value
     form?.reset()
     // Text areas don't reset, need to manually clear them
     form
@@ -20,36 +41,12 @@ export const ChoreListPage = component(() => {
       .forEach((el) => ((el as HTMLTextAreaElement).value = ''))
   }
 
-  const items = signal([] as ChoresResponse[])
-  pb.collection('chores').getFullList().then(items.set)
-  effect(() => {
-    const unsub = pb.collection('chores').subscribe('*', () => {
-      // TODO: Not efficient, but works for now
-      pb.collection('chores').getFullList().then(items.set)
-    })
-    return () => unsub.then((u) => u())
-  })
-
-  const [done, notDone] = computedGroup(() => {
-    const done = [] as ChoresResponse[]
-    const notDone = [] as ChoresResponse[]
-    items.get().forEach((item) => {
-      if (item.done) done.push(item)
-      else notDone.push(item)
-    })
-    return [done, notDone]
-  })
-
-  const makeHandleDone = (id: string) => () => {
-    pb.collection('chores').update(id, { done: true })
+  const handleSubmit = (e: SubmitEvent) => {
+    e.preventDefault()
+    const form = new FormData(e.target as HTMLFormElement)
+    pb.collection('chores').create(form)
+    resetForm()
   }
-
-  const makeHandleNotDone = (id: string) => () => {
-    pb.collection('chores').update(id, { done: false })
-  }
-
-  // TODO: Figure out why most directives throw errors
-  //let formRef: Ref<HTMLFormElement> = createRef()
 
   return html`
     <ion-header>
@@ -70,22 +67,7 @@ export const ChoreListPage = component(() => {
         </ion-fab-button>
       </ion-fab>
       <ion-list>
-        ${() =>
-          notDone.get().map(
-            (item) => html`
-              <ion-item>
-                <ion-checkbox
-                  .checked=${false}
-                  label-placement="end"
-                  justify="start"
-                  @ionChange=${makeHandleDone(item.id)}
-                >
-                  <ion-label>${item.name}</ion-label>
-                  <ion-note>${item.description}</ion-note>
-                </ion-checkbox>
-              </ion-item>
-            `
-          )}
+        ${() => repeat(notDone.get(), (item) => item.id, Item)}
       </ion-list>
       <ion-accordion-group>
         <ion-accordion>
@@ -93,42 +75,23 @@ export const ChoreListPage = component(() => {
             <ion-label>Completed (${() => done.get().length})</ion-label>
           </ion-item>
           <ion-list slot="content">
-            ${() =>
-              done.get().map(
-                (item) => html`
-                  <ion-item>
-                    <ion-checkbox
-                      .checked=${true}
-                      label-placement="end"
-                      justify="start"
-                      @ionChange=${makeHandleNotDone(item.id)}
-                    >
-                      <ion-label>${item.name}</ion-label>
-                      <ion-note>${item.description}</ion-note>
-                    </ion-checkbox>
-                  </ion-item>
-                `
-              )}
+            ${() => repeat(done.get(), (item) => item.id, Item)}
           </ion-list>
         </ion-accordion>
       </ion-accordion-group>
       <ion-modal
         .isOpen=${isAdding}
-        @didDismiss=${handleDismiss}
+        @didDismiss=${resetForm}
         .breakpoints=${[0, 1]}
         initial-breakpoint="1"
         backdrop-dismiss="false"
         backdrop-breakpoint="0.5"
         style="--height: auto;"
       >
-        <div class="ion-padding" style=${styleMap({})}>
+        <div class="ion-padding">
           <form
-            @submit=${(e: SubmitEvent) => {
-              e.preventDefault()
-              const form = new FormData(e.target as HTMLFormElement)
-              pb.collection('chores').create(form)
-              handleDismiss(e)
-            }}
+            ${ref(formRef)}
+            @submit=${handleSubmit}
             style="display: flex; flex-direction: column;"
           >
             <ion-input placeholder="Chore name" name="name"></ion-input>
@@ -144,5 +107,26 @@ export const ChoreListPage = component(() => {
         </div>
       </ion-modal>
     </ion-content>
+  `
+})
+
+const Item = component((item: ChoresResponse) => {
+  const handleCheck = (e: Event) => {
+    e.stopPropagation()
+    pb.collection('chores').update(item.id, { done: !item.done })
+  }
+  return html`
+    <ion-item button @click=${() => console.log('item clicked')}>
+      <ion-button slot="start" fill="clear" size="large" @click=${handleCheck}>
+        <ion-icon
+          name=${item.done ? 'checkbox-outline' : 'square-outline'}
+          slot="icon-only"
+        ></ion-icon>
+      </ion-button>
+      <ion-label class="ion-text-nowrap">
+        ${item.name}
+        <p>${item.description}</p>
+      </ion-label>
+    </ion-item>
   `
 })
