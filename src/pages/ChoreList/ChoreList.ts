@@ -1,10 +1,15 @@
 import { ChoresResponse } from './../../../pocketbase-types'
 import { component, computedGroup, effect, html, signal } from 'solit'
 import { pb } from '../../globals'
-import { ref, createRef, type Ref } from 'lit-html/directives/ref.js'
+import { ref, createRef } from 'lit-html/directives/ref.js'
 import { repeat } from 'lit-html/directives/repeat.js'
+// Adds type safety for component
+import '@ionic/core/components/ion-textarea'
+import { showConfirm } from '../../components/Confirmation'
 
-// TODO: Confirmation when dismissing modal with unsaved changes
+// TODO: Separate out components
+// TODO: Utility for working with forms
+// TODO: Standardize on modal handling (dismiss + canDismiss vs manual close?)
 export const ChoreListPage = component(() => {
   const items = signal([] as ChoresResponse[])
 
@@ -32,15 +37,13 @@ export const ChoreListPage = component(() => {
   const isAdding = signal(false)
 
   // TODO: Refactor to just regenerate the form?
-  let formRef: Ref<HTMLFormElement> = createRef()
+  const addFormRef = createRef<HTMLFormElement>()
   const resetForm = () => {
     isAdding.set(false)
-    const form = formRef.value
+    const form = addFormRef.value
     form?.reset()
     // Text areas don't reset, need to manually clear them
-    form
-      ?.querySelectorAll('ion-textarea')
-      .forEach((el) => ((el as HTMLTextAreaElement).value = ''))
+    form?.querySelectorAll('ion-textarea').forEach((el) => (el.value = ''))
   }
 
   const handleAdd = (e: SubmitEvent) => {
@@ -50,6 +53,19 @@ export const ChoreListPage = component(() => {
     resetForm()
   }
 
+  // Added as a prop, so need to wrap in a signal
+  const canDismissAdd = signal(() => {
+    const formData = new FormData(addFormRef.value!)
+    if ([...formData.values()].some(Boolean)) {
+      return showConfirm({
+        header: 'Discard draft?',
+        message: 'Are you sure you want to discard your draft?',
+        confirmText: 'Discard',
+      })
+    }
+    return true
+  })
+
   const editingItem = signal(null as ChoresResponse | null)
   const handleEdit = (e: SubmitEvent) => {
     e.preventDefault()
@@ -57,6 +73,26 @@ export const ChoreListPage = component(() => {
     pb.collection('chores').update(editingItem.get()?.id!, form)
     editingItem.reset()
   }
+  const handleEditBack = async () => {
+    const formData = new FormData(editFormRef.get() as HTMLFormElement)
+    let discard = true
+    if (
+      [...formData.entries()].some(
+        ([key, value]) =>
+          value !== editingItem.get()?.[key as keyof ChoresResponse]
+      )
+    ) {
+      discard = await showConfirm({
+        header: 'Discard changes?',
+        message: 'Are you sure you want to discard your changes?',
+        confirmText: 'Discard',
+      })
+    }
+    if (discard) {
+      editingItem.reset()
+    }
+  }
+  const editFormRef = signal<Element | undefined>(undefined)
 
   return html`
     <ion-header>
@@ -101,16 +137,16 @@ export const ChoreListPage = component(() => {
       </ion-fab>
       <ion-modal
         .isOpen=${isAdding}
+        .canDismiss=${canDismissAdd}
         @didDismiss=${resetForm}
         .breakpoints=${[0, 1]}
         initial-breakpoint="1"
-        backdrop-dismiss="false"
         backdrop-breakpoint="0.5"
         style="--height: auto;"
       >
         <div class="ion-padding">
           <form
-            ${ref(formRef)}
+            ${ref(addFormRef)}
             @submit=${handleAdd}
             style="display: flex; flex-direction: column;"
           >
@@ -130,14 +166,14 @@ export const ChoreListPage = component(() => {
         <ion-header>
           <ion-toolbar>
             <ion-buttons slot="start">
-              <ion-button @click=${editingItem.reset} fill="clear">
+              <ion-button @click=${handleEditBack} fill="clear">
                 <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
               </ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
-          <form id="edit-form" @submit=${handleEdit}>
+          <form ${ref(editFormRef)} id="edit-form" @submit=${handleEdit}>
             <ion-input
               placeholder="Chore name"
               name="name"
@@ -159,7 +195,7 @@ export const ChoreListPage = component(() => {
             <ion-buttons slot="end">
               <ion-button
                 type="submit"
-                form="edit-form"
+                form=${() => editFormRef.get()?.id}
                 fill="clear"
                 color="primary"
               >
