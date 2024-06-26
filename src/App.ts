@@ -4,6 +4,7 @@ import '@ionic/core/css/palettes/dark.system.css'
 import { LoginPage } from './pages/Login/Login'
 import { pb } from './globals'
 import { ChoreListPage } from './pages/ChoreList/ChoreList'
+import { currentConfirmationDialog } from './components/Confirmation'
 
 // TODO: Better styling solution?
 // TODO: Bundle ionic components properly?
@@ -16,6 +17,9 @@ export const App = component(() => {
   })
 
   return html`
-    <ion-app>${() => when(loggedIn.get(), ChoreListPage, LoginPage)}</ion-app>
+    <ion-app>
+      ${() => when(loggedIn.get(), ChoreListPage, LoginPage)}
+      ${currentConfirmationDialog}
+    </ion-app>
   `
 })
