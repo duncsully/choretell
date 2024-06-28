@@ -15,6 +15,8 @@ import { repeat } from 'lit-html/directives/repeat.js'
 import '@ionic/core/components/ion-textarea'
 import { showConfirm } from '../../components/Confirmation'
 
+// TODO: Getting console error when dismissing add sheet discard confirmation modal
+// TODO: Validate add and edit
 // TODO: Turn window alerts into toasts?
 // TODO: Utility for working with forms
 export const ChoreListPage = component(() => {
@@ -147,6 +149,10 @@ const ChoreAddForm = component((isAdding: Signal<boolean>) => {
     }
   }
 
+  const focusFirstInput = () => {
+    addFormRef.value?.querySelector('ion-input')?.setFocus()
+  }
+
   return html`
     <ion-modal
       .isOpen=${isAdding}
@@ -155,6 +161,7 @@ const ChoreAddForm = component((isAdding: Signal<boolean>) => {
       initial-breakpoint="1"
       backdrop-breakpoint="0.5"
       style="--height: auto;"
+      @didPresent=${focusFirstInput}
     >
       <div class="ion-padding">
         <form
