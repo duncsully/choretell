@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "build:client && build:server",
+    "build:client": "tsc && vite build",
+    "build:server": "cd server && CGO_ENABLED=0 go build",
     "preview": "vite preview",
     "pb-typegen": "npx pocketbase-typegen --env",
     "test": "vitest"
