@@ -17,7 +17,6 @@ import { repeat } from 'lit-html/directives/repeat.js'
 import '@ionic/core/components/ion-textarea'
 import { showConfirm } from '../../components/ConfirmationModal'
 
-// TODO: Validate add and edit
 // TODO: Turn window alerts into toasts?
 // TODO: Modal component that dismounts children when closed so state gets reset
 
@@ -115,6 +114,7 @@ const ChoreAddForm = component((isAdding: Signal<boolean>) => {
   const name = signal('')
   const description = signal('')
   const hasChanges = computed(() => name.get() || description.get())
+  const isInvalid = computed(() => !name.get().trim())
 
   const resetForm = () => {
     name.reset()
@@ -181,7 +181,12 @@ const ChoreAddForm = component((isAdding: Signal<boolean>) => {
             auto-grow
             .value=${bind(description)}
           ></ion-textarea>
-          <ion-button type="submit" fill="clear" style="align-self: end;">
+          <ion-button
+            type="submit"
+            fill="clear"
+            style="align-self: end;"
+            .disabled=${isInvalid}
+          >
             Add
           </ion-button>
         </form>
@@ -207,10 +212,12 @@ const ChoreEditModal = component(
     const handleEdit = async (e: SubmitEvent) => {
       e.preventDefault()
       try {
-        await pb.collection('chores').update(editingChore.get()?.id!, {
-          name: name.get(),
-          description: description.get(),
-        })
+        if (hasChanged.get()) {
+          await pb.collection('chores').update(editingChore.get()?.id!, {
+            name: name.get(),
+            description: description.get(),
+          })
+        }
         editingChore.reset()
       } catch (err) {
         console.error(err)
