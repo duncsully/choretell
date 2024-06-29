@@ -1,24 +1,16 @@
 import { ChoresResponse } from './../../../pocketbase-types'
-import {
-  Computed,
-  Signal,
-  component,
-  computedGroup,
-  effect,
-  html,
-  signal,
-  bind,
-  computed,
-} from 'solit'
+import { Computed, component, computedGroup, effect, html, signal } from 'solit'
 import { pb } from '../../globals'
-import { ref, createRef } from 'lit-html/directives/ref.js'
 import { repeat } from 'lit-html/directives/repeat.js'
 // Adds type safety for component
 import '@ionic/core/components/ion-textarea'
-import { showConfirm } from '../../components/ConfirmationModal'
 import { showToast } from '../../components/Toast'
+import { ChoreEditModal } from './components/ChoreEditModal'
+import { ChoreAddForm } from './components/ChoreAddForm'
 
 // TODO: Modal component that dismounts children when closed so state gets reset
+// TODO: Error UI when fetching items fails (use until?)
+// TODO: Improve refetching: don't need to refetch on delete, can modify locally on edit
 
 export const ChoreListPage = component(() => {
   const chores = signal([] as ChoresResponse[])
@@ -31,7 +23,7 @@ export const ChoreListPage = component(() => {
         .then(chores.set)
         .catch((err) => {
           console.log(err)
-          showToast('Failed to load chores', 'danger')
+          showToast({ message: 'Failed to load chores', color: 'danger' })
         })
     }
     getItems()
@@ -40,15 +32,24 @@ export const ChoreListPage = component(() => {
     return () => unsub.then((u) => u())
   })
 
-  const [notDone, done] = computedGroup(() =>
-    chores.get().reduce<[ChoresResponse[], ChoresResponse[]]>(
+  const [notDone, done] = computedGroup(() => {
+    const result = chores.get().reduce<[ChoresResponse[], ChoresResponse[]]>(
       (results, item) => {
         results[+item.done].push(item)
         return results
       },
       [[], []]
     )
-  )
+    result[0].sort(
+      (a, b) => new Date(a.created).valueOf() - new Date(b.created).valueOf()
+    )
+    // TODO: Set completions and sort by that
+    // Last update was likely being checked off, reverse sort
+    result[1].sort(
+      (a, b) => new Date(b.updated).valueOf() - new Date(a.updated).valueOf()
+    )
+    return result
+  })
 
   const isAdding = signal(false)
 
@@ -60,6 +61,45 @@ export const ChoreListPage = component(() => {
       (chore) => `${chore.id}_${chore.updated}`,
       (chore) => ChoreItem(chore, () => editingChore.set(chore))
     )
+
+  // Optimistically update and allow undoing delete
+  const handleDelete = async () => {
+    const choreToDelete = editingChore.get()
+    if (!choreToDelete) {
+      return
+    }
+    editingChore.reset()
+    chores.update((prev) =>
+      prev.filter((chore) => chore.id !== choreToDelete.id)
+    )
+
+    const undoLocalDelete = () => {
+      chores.update((prev) => {
+        return [...prev, choreToDelete]
+      })
+    }
+
+    showToast({
+      message: 'Chore deleted',
+      duration: 5_000,
+      button: {
+        text: 'Undo',
+        role: 'cancel',
+        handler: undoLocalDelete,
+      },
+      onDidDismiss: (e) => {
+        if (e.detail.role !== 'cancel') {
+          pb.collection('chores')
+            .delete(choreToDelete.id)
+            .catch((err) => {
+              console.error(err)
+              showToast({ message: 'Failed to delete item', color: 'danger' })
+              undoLocalDelete()
+            })
+        }
+      },
+    })
+  }
 
   return html`
     <ion-header>
@@ -89,7 +129,7 @@ export const ChoreListPage = component(() => {
         </ion-fab-button>
       </ion-fab>
     </ion-content>
-    ${ChoreAddForm(isAdding)} ${ChoreEditModal(editingChore)}
+    ${ChoreAddForm(isAdding)} ${ChoreEditModal(editingChore, handleDelete)}
   `
 })
 
@@ -100,7 +140,7 @@ const ChoreItem = component((chore: ChoresResponse, onClick: () => void) => {
       await pb.collection('chores').update(chore.id, { done: !chore.done })
     } catch (err) {
       console.error(err)
-      showToast('Failed to update item', 'danger')
+      showToast({ message: 'Failed to update item', color: 'danger' })
     }
   }
   return html`
@@ -120,177 +160,3 @@ const ChoreItem = component((chore: ChoresResponse, onClick: () => void) => {
     </ion-item>
   `
 })
-
-const ChoreAddForm = component((isAdding: Signal<boolean>) => {
-  const name = signal('')
-  const description = signal('')
-  const hasChanges = computed(() => name.get() || description.get())
-  const isInvalid = computed(() => !name.get().trim())
-
-  const resetForm = () => {
-    name.reset()
-    description.reset()
-  }
-
-  const handleAdd = async (e: SubmitEvent) => {
-    e.preventDefault()
-    try {
-      await pb.collection('chores').create({
-        name: name.get(),
-        description: description.get(),
-      })
-      isAdding.set(false)
-      resetForm()
-    } catch (err) {
-      console.error(err)
-      showToast('Failed to add chore', 'danger')
-    }
-  }
-
-  const handleDismiss = () => {
-    isAdding.set(false)
-    if (hasChanges.get()) {
-      showConfirm({
-        header: 'Discard draft?',
-        message: 'Are you sure you want to discard your draft?',
-        confirmText: 'Discard',
-        onCancel: () => isAdding.set(true),
-        onConfirm: resetForm,
-      })
-    } else {
-      resetForm()
-    }
-  }
-
-  const firstInputRef = createRef<HTMLIonInputElement>()
-  const focusFirstInput = () => {
-    firstInputRef.value?.setFocus()
-  }
-
-  return html`
-    <ion-modal
-      .isOpen=${isAdding}
-      @didDismiss=${handleDismiss}
-      .breakpoints=${[0, 1]}
-      initial-breakpoint="1"
-      backdrop-breakpoint="0.5"
-      style="--height: auto;"
-      @didPresent=${focusFirstInput}
-    >
-      <div class="ion-padding">
-        <form
-          @submit=${handleAdd}
-          style="display: flex; flex-direction: column;"
-        >
-          <ion-input
-            ${ref(firstInputRef)}
-            placeholder="Chore name"
-            .value=${bind(name)}
-          ></ion-input>
-          <ion-textarea
-            placeholder="Description"
-            auto-grow
-            .value=${bind(description)}
-          ></ion-textarea>
-          <ion-button
-            type="submit"
-            fill="clear"
-            style="align-self: end;"
-            .disabled=${isInvalid}
-          >
-            Add
-          </ion-button>
-        </form>
-      </div>
-    </ion-modal>
-  `
-})
-
-const ChoreEditModal = component(
-  (editingChore: Signal<ChoresResponse | null>) => {
-    const name = signal('')
-    const description = signal('')
-    effect(() => {
-      name.set(editingChore.get()?.name ?? '')
-      description.set(editingChore.get()?.description ?? '')
-    })
-    const hasChanged = computed(
-      () =>
-        name.get() !== editingChore.get()?.name ||
-        description.get() !== editingChore.get()?.description
-    )
-
-    const handleEdit = async (e: SubmitEvent) => {
-      e.preventDefault()
-      try {
-        if (hasChanged.get()) {
-          await pb.collection('chores').update(editingChore.get()?.id!, {
-            name: name.get(),
-            description: description.get(),
-          })
-        }
-        editingChore.reset()
-      } catch (err) {
-        console.error(err)
-        showToast('Failed to update item', 'danger')
-      }
-    }
-
-    const handleEditBack = () => {
-      if (hasChanged.get()) {
-        showConfirm({
-          header: 'Discard changes?',
-          message: 'Are you sure you want to discard your changes?',
-          confirmText: 'Discard',
-          onConfirm: editingChore.reset,
-        })
-      } else {
-        editingChore.reset()
-      }
-    }
-
-    return html`
-      <ion-modal .isOpen=${() => !!editingChore.get()}>
-        <ion-header>
-          <ion-toolbar>
-            <ion-buttons slot="start">
-              <ion-button @click=${handleEditBack} fill="clear">
-                <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
-              </ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content class="ion-padding">
-          <form id="edit-form" @submit=${handleEdit}>
-            <ion-input
-              placeholder="Chore name"
-              .value=${bind(name)}
-              style="font-size: 1.5em;"
-            ></ion-input>
-            <ion-textarea
-              placeholder="Add details"
-              auto-grow
-              .value=${bind(description)}
-            >
-              <ion-icon name="reader-outline" slot="start"></ion-icon>
-            </ion-textarea>
-          </form>
-        </ion-content>
-        <ion-footer>
-          <ion-toolbar>
-            <ion-buttons slot="end">
-              <ion-button
-                type="submit"
-                form="edit-form"
-                fill="clear"
-                color="primary"
-              >
-                Save
-              </ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-footer>
-      </ion-modal>
-    `
-  }
-)

@@ -14,7 +14,7 @@ export const LoginPage = component(() => {
         await pb.collection('users').authWithPassword(email, password)
       } catch (err) {
         console.error(err)
-        showToast('Failed to login', 'danger')
+        showToast({ message: 'Failed to login', color: 'danger' })
       }
     } else if (action === 'register') {
       try {
