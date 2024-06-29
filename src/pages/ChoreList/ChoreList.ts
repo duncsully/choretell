@@ -8,27 +8,35 @@ import { showToast } from '../../components/Toast'
 import { ChoreEditModal } from './components/ChoreEditModal'
 import { ChoreAddForm } from './components/ChoreAddForm'
 
-// TODO: Modal component that dismounts children when closed so state gets reset
+// TODO: Modal component that dismounts children when closed so state gets reset?
 // TODO: Error UI when fetching items fails (use until?)
-// TODO: Improve refetching: don't need to refetch on delete, can modify locally on edit
 
 export const ChoreListPage = component(() => {
   const chores = signal([] as ChoresResponse[])
 
   effect(() => {
-    const getItems = () => {
-      console.log('fetching chores')
-      pb.collection('chores')
-        .getFullList()
-        .then(chores.set)
-        .catch((err) => {
-          console.log(err)
-          showToast({ message: 'Failed to load chores', color: 'danger' })
-        })
-    }
-    getItems()
-    // TODO: Not efficient, but works for now
-    const unsub = pb.collection('chores').subscribe('*', getItems)
+    console.log('fetching chores')
+    pb.collection('chores')
+      .getFullList()
+      .then(chores.set)
+      .catch((err) => {
+        console.log(err)
+        showToast({ message: 'Failed to load chores', color: 'danger' })
+      })
+
+    const unsub = pb
+      .collection('chores')
+      .subscribe('*', ({ action, record }) => {
+        const updaters = {
+          create: (prev: ChoresResponse[]) => [...prev, record],
+          update: (prev: ChoresResponse[]) =>
+            prev.map((item) => (item.id === record.id ? record : item)),
+          delete: (prev: ChoresResponse[]) =>
+            prev.filter((item) => item.id !== record.id),
+        } as const
+        console.log('chore', action, record)
+        chores.update(updaters[action as keyof typeof updaters])
+      })
     return () => unsub.then((u) => u())
   })
 
