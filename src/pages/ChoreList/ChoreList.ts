@@ -7,6 +7,8 @@ import {
   effect,
   html,
   signal,
+  bind,
+  computed,
 } from 'solit'
 import { pb } from '../../globals'
 import { ref, createRef } from 'lit-html/directives/ref.js'
@@ -18,7 +20,7 @@ import { showConfirm } from '../../components/Confirmation'
 // TODO: Getting console error when dismissing add sheet discard confirmation modal
 // TODO: Validate add and edit
 // TODO: Turn window alerts into toasts?
-// TODO: Utility for working with forms
+// TODO: Convert to controlled inputs. Binding directive?
 export const ChoreListPage = component(() => {
   const chores = signal([] as ChoresResponse[])
 
@@ -110,19 +112,22 @@ const ChoreItem = component((chore: ChoresResponse, onClick: () => void) => {
 })
 
 const ChoreAddForm = component((isAdding: Signal<boolean>) => {
-  const addFormRef = createRef<HTMLFormElement>()
+  const name = signal('')
+  const description = signal('')
+  const hasChanges = computed(() => name.get() || description.get())
+
   const resetForm = () => {
-    const form = addFormRef.value
-    form?.reset()
-    // Text areas don't reset, need to manually clear them
-    form?.querySelectorAll('ion-textarea').forEach((el) => (el.value = ''))
+    name.reset()
+    description.reset()
   }
 
   const handleAdd = async (e: SubmitEvent) => {
     e.preventDefault()
     try {
-      const form = new FormData(e.target as HTMLFormElement)
-      await pb.collection('chores').create(form)
+      await pb.collection('chores').create({
+        name: name.get(),
+        description: description.get(),
+      })
       isAdding.set(false)
       resetForm()
     } catch (err) {
@@ -132,10 +137,9 @@ const ChoreAddForm = component((isAdding: Signal<boolean>) => {
   }
 
   const handleDismiss = async () => {
-    const formData = new FormData(addFormRef.value!)
     isAdding.set(false)
     let discard = true
-    if ([...formData.values()].some(Boolean)) {
+    if (hasChanges.get()) {
       discard = await showConfirm({
         header: 'Discard draft?',
         message: 'Are you sure you want to discard your draft?',
@@ -149,8 +153,9 @@ const ChoreAddForm = component((isAdding: Signal<boolean>) => {
     }
   }
 
+  const firstInputRef = createRef<HTMLIonInputElement>()
   const focusFirstInput = () => {
-    addFormRef.value?.querySelector('ion-input')?.setFocus()
+    firstInputRef.value?.setFocus()
   }
 
   return html`
@@ -165,15 +170,18 @@ const ChoreAddForm = component((isAdding: Signal<boolean>) => {
     >
       <div class="ion-padding">
         <form
-          ${ref(addFormRef)}
           @submit=${handleAdd}
           style="display: flex; flex-direction: column;"
         >
-          <ion-input placeholder="Chore name" name="name"></ion-input>
+          <ion-input
+            ${ref(firstInputRef)}
+            placeholder="Chore name"
+            .value=${bind(name)}
+          ></ion-input>
           <ion-textarea
             placeholder="Description"
             auto-grow
-            name="description"
+            .value=${bind(description)}
           ></ion-textarea>
           <ion-button type="submit" fill="clear" style="align-self: end;">
             Add
@@ -184,28 +192,38 @@ const ChoreAddForm = component((isAdding: Signal<boolean>) => {
   `
 })
 
+// TODO: Modal component that dismounts children when closed so state gets reset
 const ChoreEditModal = component(
   (editingChore: Signal<ChoresResponse | null>) => {
+    const name = signal('')
+    const description = signal('')
+    effect(() => {
+      name.set(editingChore.get()?.name ?? '')
+      description.set(editingChore.get()?.description ?? '')
+    })
+    const hasChanged = computed(
+      () =>
+        name.get() !== editingChore.get()?.name ||
+        description.get() !== editingChore.get()?.description
+    )
+
     const handleEdit = async (e: SubmitEvent) => {
       e.preventDefault()
       try {
-        const form = new FormData(e.target as HTMLFormElement)
-        await pb.collection('chores').update(editingChore.get()?.id!, form)
+        await pb.collection('chores').update(editingChore.get()?.id!, {
+          name: name.get(),
+          description: description.get(),
+        })
         editingChore.reset()
       } catch (err) {
         console.error(err)
         window.alert('Failed to update item')
       }
     }
+
     const handleEditBack = async () => {
-      const formData = new FormData(editFormRef.get() as HTMLFormElement)
       let discard = true
-      if (
-        [...formData.entries()].some(
-          ([key, value]) =>
-            value !== editingChore.get()?.[key as keyof ChoresResponse]
-        )
-      ) {
+      if (hasChanged.get()) {
         discard = await showConfirm({
           header: 'Discard changes?',
           message: 'Are you sure you want to discard your changes?',
@@ -216,7 +234,6 @@ const ChoreEditModal = component(
         editingChore.reset()
       }
     }
-    const editFormRef = signal<Element | undefined>(undefined)
 
     return html`
       <ion-modal .isOpen=${() => !!editingChore.get()}>
@@ -230,18 +247,16 @@ const ChoreEditModal = component(
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
-          <form ${ref(editFormRef)} id="edit-form" @submit=${handleEdit}>
+          <form id="edit-form" @submit=${handleEdit}>
             <ion-input
               placeholder="Chore name"
-              name="name"
-              .value=${() => editingChore.get()?.name}
+              .value=${bind(name)}
               style="font-size: 1.5em;"
             ></ion-input>
             <ion-textarea
               placeholder="Add details"
               auto-grow
-              name="description"
-              .value=${() => editingChore.get()?.description}
+              .value=${bind(description)}
             >
               <ion-icon name="reader-outline" slot="start"></ion-icon>
             </ion-textarea>
@@ -252,7 +267,7 @@ const ChoreEditModal = component(
             <ion-buttons slot="end">
               <ion-button
                 type="submit"
-                form=${() => editFormRef.get()?.id}
+                form="edit-form"
                 fill="clear"
                 color="primary"
               >
