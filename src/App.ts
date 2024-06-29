@@ -4,7 +4,7 @@ import '@ionic/core/css/palettes/dark.system.css'
 import { LoginPage } from './pages/Login/Login'
 import { pb } from './globals'
 import { ChoreListPage } from './pages/ChoreList/ChoreList'
-import { currentConfirmationDialog } from './components/Confirmation'
+import { currentConfirmationDialog } from './components/ConfirmationModal'
 
 // TODO: Better styling solution?
 // TODO: Bundle ionic components properly?

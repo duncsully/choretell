@@ -15,12 +15,12 @@ import { ref, createRef } from 'lit-html/directives/ref.js'
 import { repeat } from 'lit-html/directives/repeat.js'
 // Adds type safety for component
 import '@ionic/core/components/ion-textarea'
-import { showConfirm } from '../../components/Confirmation'
+import { showConfirm } from '../../components/ConfirmationModal'
 
-// TODO: Getting console error when dismissing add sheet discard confirmation modal
 // TODO: Validate add and edit
 // TODO: Turn window alerts into toasts?
-// TODO: Convert to controlled inputs. Binding directive?
+// TODO: Modal component that dismounts children when closed so state gets reset
+
 export const ChoreListPage = component(() => {
   const chores = signal([] as ChoresResponse[])
 
@@ -136,20 +136,18 @@ const ChoreAddForm = component((isAdding: Signal<boolean>) => {
     }
   }
 
-  const handleDismiss = async () => {
+  const handleDismiss = () => {
     isAdding.set(false)
-    let discard = true
     if (hasChanges.get()) {
-      discard = await showConfirm({
+      showConfirm({
         header: 'Discard draft?',
         message: 'Are you sure you want to discard your draft?',
         confirmText: 'Discard',
+        onCancel: () => isAdding.set(true),
+        onConfirm: resetForm,
       })
-    }
-    if (discard) {
-      resetForm()
     } else {
-      isAdding.set(true)
+      resetForm()
     }
   }
 
@@ -192,7 +190,6 @@ const ChoreAddForm = component((isAdding: Signal<boolean>) => {
   `
 })
 
-// TODO: Modal component that dismounts children when closed so state gets reset
 const ChoreEditModal = component(
   (editingChore: Signal<ChoresResponse | null>) => {
     const name = signal('')
@@ -221,16 +218,15 @@ const ChoreEditModal = component(
       }
     }
 
-    const handleEditBack = async () => {
-      let discard = true
+    const handleEditBack = () => {
       if (hasChanged.get()) {
-        discard = await showConfirm({
+        showConfirm({
           header: 'Discard changes?',
           message: 'Are you sure you want to discard your changes?',
           confirmText: 'Discard',
+          onConfirm: editingChore.reset,
         })
-      }
-      if (discard) {
+      } else {
         editingChore.reset()
       }
     }
