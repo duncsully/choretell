@@ -5,6 +5,7 @@ import { LoginPage } from './pages/Login/Login'
 import { pb } from './globals'
 import { ChoreListPage } from './pages/ChoreList/ChoreList'
 import { currentConfirmationDialog } from './components/ConfirmationModal'
+import { currentToast } from './components/Toast'
 
 // TODO: Better styling solution?
 // TODO: Bundle ionic components properly?
@@ -19,7 +20,7 @@ export const App = component(() => {
   return html`
     <ion-app>
       ${() => when(loggedIn.get(), ChoreListPage, LoginPage)}
-      ${currentConfirmationDialog}
+      ${currentConfirmationDialog} ${currentToast}
     </ion-app>
   `
 })

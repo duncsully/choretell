@@ -16,8 +16,8 @@ import { repeat } from 'lit-html/directives/repeat.js'
 // Adds type safety for component
 import '@ionic/core/components/ion-textarea'
 import { showConfirm } from '../../components/ConfirmationModal'
+import { showToast } from '../../components/Toast'
 
-// TODO: Turn window alerts into toasts?
 // TODO: Modal component that dismounts children when closed so state gets reset
 
 export const ChoreListPage = component(() => {
@@ -26,7 +26,13 @@ export const ChoreListPage = component(() => {
   effect(() => {
     const getItems = () => {
       console.log('fetching chores')
-      pb.collection('chores').getFullList().then(chores.set)
+      pb.collection('chores')
+        .getFullList()
+        .then(chores.set)
+        .catch((err) => {
+          console.log(err)
+          showToast('Failed to load chores', 'danger')
+        })
     }
     getItems()
     // TODO: Not efficient, but works for now
@@ -88,9 +94,14 @@ export const ChoreListPage = component(() => {
 })
 
 const ChoreItem = component((chore: ChoresResponse, onClick: () => void) => {
-  const handleCheck = (e: Event) => {
+  const handleCheck = async (e: Event) => {
     e.stopPropagation()
-    pb.collection('chores').update(chore.id, { done: !chore.done })
+    try {
+      await pb.collection('chores').update(chore.id, { done: !chore.done })
+    } catch (err) {
+      console.error(err)
+      showToast('Failed to update item', 'danger')
+    }
   }
   return html`
     <ion-item button @click=${onClick}>
@@ -132,7 +143,7 @@ const ChoreAddForm = component((isAdding: Signal<boolean>) => {
       resetForm()
     } catch (err) {
       console.error(err)
-      window.alert('Failed to add item')
+      showToast('Failed to add chore', 'danger')
     }
   }
 
@@ -221,7 +232,7 @@ const ChoreEditModal = component(
         editingChore.reset()
       } catch (err) {
         console.error(err)
-        window.alert('Failed to update item')
+        showToast('Failed to update item', 'danger')
       }
     }
 

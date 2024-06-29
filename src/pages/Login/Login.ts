@@ -1,5 +1,6 @@
 import { component, html } from 'solit'
 import { pb } from '../../globals'
+import { showToast } from '../../components/Toast'
 
 export const LoginPage = component(() => {
   const handleForm = async (e: SubmitEvent) => {
@@ -11,8 +12,9 @@ export const LoginPage = component(() => {
     if (action === 'login') {
       try {
         await pb.collection('users').authWithPassword(email, password)
-      } catch (e) {
-        window.alert('Invalid username or password')
+      } catch (err) {
+        console.error(err)
+        showToast('Failed to login', 'danger')
       }
     } else if (action === 'register') {
       try {
