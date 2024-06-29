@@ -5,14 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "build:client && build:server",
+    "build": "npm run build:client && npm run build:server",
     "build:client": "tsc && vite build",
-    "build:server": "cd server && CGO_ENABLED=0 go build",
+    "build:server": "cd server && cross-env CGO_ENABLED=0 go build",
     "preview": "vite preview",
     "pb-typegen": "npx pocketbase-typegen --env",
     "test": "vitest"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
     "vitest": "^1.6.0"
