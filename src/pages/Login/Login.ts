@@ -1,34 +1,42 @@
-import { component, html } from 'solit'
+import { bind, component, html, signal } from 'solit'
 import { pb } from '../../globals'
 import { showToast } from '../../components/Toast'
 
+// TODO: Form moves around when switching inputs
+
 export const LoginPage = component(() => {
-  const handleForm = async (e: SubmitEvent) => {
+  const handleForm = (e: SubmitEvent) => {
     e.preventDefault()
-    const form = new FormData(e.target as HTMLFormElement)
-    const action = e.submitter?.getAttribute('formaction') ?? 'login'
-    const email = form.get('email') as string
-    const password = form.get('password') as string
-    if (action === 'login') {
-      try {
-        await pb.collection('users').authWithPassword(email, password)
-      } catch (err) {
-        console.error(err)
-        showToast({ message: 'Failed to login', color: 'danger' })
-      }
-    } else if (action === 'register') {
-      try {
-        await pb.collection('users').create({
-          email,
-          password,
-          // We allow the user to see their password, no need to make them type it twice
-          passwordConfirm: password,
-        })
-      } catch (e) {
-        window.alert('Failed to register')
-      }
+    handleLogin()
+  }
+
+  const handleLogin = async () => {
+    try {
+      await pb.collection('users').authWithPassword(email.get(), password.get())
+    } catch (err) {
+      console.error(err)
+      showToast({ message: 'Failed to login', color: 'danger' })
     }
   }
+
+  const handleRegister = async () => {
+    try {
+      await pb.collection('users').create({
+        email: email.get(),
+        password: password.get(),
+        // We allow the user to see their password, no need to make them type it twice
+        passwordConfirm: password.get(),
+      })
+      // TODO: Require email verification?
+      handleLogin()
+    } catch (e) {
+      console.error(e)
+      showToast({ message: 'Failed to register', color: 'danger' })
+    }
+  }
+
+  const email = signal('')
+  const password = signal('')
 
   return html`
     <ion-content>
@@ -46,6 +54,7 @@ export const LoginPage = component(() => {
               style="display: flex; flex-direction: column; gap: 8px;"
             >
               <ion-input
+                .value=${bind(email)}
                 label="Email"
                 label-placement="stacked"
                 placeholder="Enter email address"
@@ -56,6 +65,7 @@ export const LoginPage = component(() => {
                 required
               ></ion-input>
               <ion-input
+                .value=${bind(password)}
                 label="Password"
                 label-placement="stacked"
                 placeholder="Enter password"
@@ -69,14 +79,8 @@ export const LoginPage = component(() => {
                 ></ion-input-password-toggle>
               </ion-input>
               <div style="margin: 0 auto">
-                <ion-button type="submit" formaction="login">
-                  Login
-                </ion-button>
-                <ion-button
-                  type="submit"
-                  formaction="register"
-                  color="secondary"
-                >
+                <ion-button type="submit"> Login </ion-button>
+                <ion-button @click=${handleRegister} color="secondary">
                   Register
                 </ion-button>
               </div>
