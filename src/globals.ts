@@ -1,6 +1,5 @@
 import PocketBase from 'pocketbase'
 import { TypedPocketBase } from '../pocketbase-types'
 
-export const pb = new PocketBase(
-  import.meta.env.VITE_POCKETBASE_URL
-) as TypedPocketBase
+// TODO: Use environment variables
+export const pb = new PocketBase('http://localhost:8090') as TypedPocketBase
