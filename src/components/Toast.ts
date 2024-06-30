@@ -25,11 +25,12 @@ export const Toast = component(
         duration=${duration ?? Math.max(message.length * 100, 2_000)}
         color=${color}
         swipe-gesture="vertical"
-        .buttons=${[button]}
+        .buttons=${button && [button]}
         @didDismiss=${(e: IonToastCustomEvent<any>) => {
           onDidDismiss?.(e)
           setTimeout(currentToast.reset)
         }}
+        position="bottom"
       ></ion-toast>
     `
   }
