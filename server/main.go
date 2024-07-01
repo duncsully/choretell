@@ -8,6 +8,8 @@ import (
 	_ "choretell/migrations"
 
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/apis"
+	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 )
 
@@ -21,6 +23,13 @@ func main() {
 		// enable auto creation of migration files when making collection changes in the Admin UI
 		// (the isGoRun check is to enable it only during development)
 		Automigrate: isGoRun,
+	})
+
+	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+		// serves static files from the provided public dir (if exists)
+		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), false))
+
+		return nil
 	})
 
 	if err := app.Start(); err != nil {
