@@ -36,7 +36,6 @@ export type AuthSystemFields<T = never> = {
 // Record types for each collection
 
 export type ChoresRecord = {
-	completions?: RecordIdString[]
 	cron_expr?: string
 	description?: HTMLString
 	done?: boolean
@@ -44,7 +43,8 @@ export type ChoresRecord = {
 }
 
 export type CompletionsRecord = {
-	by?: RecordIdString
+	by: RecordIdString
+	chore: RecordIdString
 }
 
 export type UsersRecord = {
