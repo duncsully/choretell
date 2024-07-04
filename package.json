@@ -23,6 +23,7 @@
   "dependencies": {
     "@ionic/core": "^8.2.2",
     "@open-wc/lit-helpers": "^0.7.0",
+    "date-fns": "^3.6.0",
     "lit-html": "^3.1.4",
     "pocketbase": "^0.21.3",
     "solit": "file:solit-0.0.0.tgz"

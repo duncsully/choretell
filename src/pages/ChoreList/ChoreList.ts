@@ -8,6 +8,7 @@ import { ChoreEditModal } from './components/ChoreEditModal'
 import { ChoreAddForm } from './components/ChoreAddForm'
 import { when } from 'lit-html/directives/when.js'
 import type { ChoreWithLastCompletion } from '../../types'
+import { formatDistanceToNow } from 'date-fns'
 
 // TODO: Empty UI
 // TODO: Error UI when fetching items fails (use until?)
@@ -174,6 +175,25 @@ const ChoreItem = component(
         showToast({ message: 'Failed to update item', color: 'danger' })
       }
     }
+
+    const completedDateTime = getLastCompletion(chore)?.last_completed as string
+    const relativeTime = signal(
+      completedDateTime
+        ? formatDistanceToNow(completedDateTime, { addSuffix: true })
+        : ''
+    )
+    effect(() => {
+      if (completedDateTime) {
+        const int = setInterval(() => {
+          relativeTime.set(
+            formatDistanceToNow(completedDateTime, { addSuffix: true })
+          )
+        }, 1_000 * 30)
+
+        return () => clearInterval(int)
+      }
+    })
+
     return html`
       <ion-item button @click=${onClick}>
         <ion-button
@@ -191,15 +211,7 @@ const ChoreItem = component(
           <span style=${chore.done ? 'text-decoration: line-through;' : ''}>
             ${chore.name}
           </span>
-          ${when(
-            chore.done,
-            () =>
-              html`<p>
-                ${new Date(
-                  getLastCompletion(chore)?.last_completed as string
-                ).toLocaleString()}
-              </p>`
-          )}
+          ${when(chore.done, () => html`<p>${relativeTime}</p>`)}
         </ion-label>
         ${when(
           chore.done,
