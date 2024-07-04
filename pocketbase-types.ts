@@ -7,8 +7,8 @@ import type { RecordService } from 'pocketbase'
 
 export enum Collections {
 	Chores = "chores",
-	ChoresWithLatestCompletions = "choresWithLatestCompletions",
 	Completions = "completions",
+	LastCompletions = "last_completions",
 	Users = "users",
 }
 
@@ -43,18 +43,15 @@ export type ChoresRecord = {
 	name: string
 }
 
-export type ChoresWithLatestCompletionsRecord<Tcompleted_time = unknown> = {
-	completed_by: RecordIdString
-	completed_time?: null | Tcompleted_time
-	completion_id?: RecordIdString
-	description?: HTMLString
-	done?: boolean
-	name: string
-}
-
 export type CompletionsRecord = {
 	by: RecordIdString
 	chore: RecordIdString
+}
+
+export type LastCompletionsRecord<Tlast_completed = unknown> = {
+	by: RecordIdString
+	chore: RecordIdString
+	last_completed?: null | Tlast_completed
 }
 
 export type UsersRecord = {
@@ -64,23 +61,23 @@ export type UsersRecord = {
 
 // Response types include system fields and match responses from the PocketBase API
 export type ChoresResponse<Texpand = unknown> = Required<ChoresRecord> & BaseSystemFields<Texpand>
-export type ChoresWithLatestCompletionsResponse<Tcompleted_time = unknown, Texpand = unknown> = Required<ChoresWithLatestCompletionsRecord<Tcompleted_time>> & BaseSystemFields<Texpand>
 export type CompletionsResponse<Texpand = unknown> = Required<CompletionsRecord> & BaseSystemFields<Texpand>
+export type LastCompletionsResponse<Tlast_completed = unknown, Texpand = unknown> = Required<LastCompletionsRecord<Tlast_completed>> & BaseSystemFields<Texpand>
 export type UsersResponse<Texpand = unknown> = Required<UsersRecord> & AuthSystemFields<Texpand>
 
 // Types containing all Records and Responses, useful for creating typing helper functions
 
 export type CollectionRecords = {
 	chores: ChoresRecord
-	choresWithLatestCompletions: ChoresWithLatestCompletionsRecord
 	completions: CompletionsRecord
+	last_completions: LastCompletionsRecord
 	users: UsersRecord
 }
 
 export type CollectionResponses = {
 	chores: ChoresResponse
-	choresWithLatestCompletions: ChoresWithLatestCompletionsResponse
 	completions: CompletionsResponse
+	last_completions: LastCompletionsResponse
 	users: UsersResponse
 }
 
@@ -89,7 +86,7 @@ export type CollectionResponses = {
 
 export type TypedPocketBase = PocketBase & {
 	collection(idOrName: 'chores'): RecordService<ChoresResponse>
-	collection(idOrName: 'choresWithLatestCompletions'): RecordService<ChoresWithLatestCompletionsResponse>
 	collection(idOrName: 'completions'): RecordService<CompletionsResponse>
+	collection(idOrName: 'last_completions'): RecordService<LastCompletionsResponse>
 	collection(idOrName: 'users'): RecordService<UsersResponse>
 }
