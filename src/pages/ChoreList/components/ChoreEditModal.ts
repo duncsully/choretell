@@ -1,11 +1,14 @@
 import { Signal, bind, component, computed, effect, html, signal } from 'solit'
-import { ChoresResponse } from '../../../../pocketbase-types'
+import { ChoresWithLatestCompletionsResponse } from '../../../../pocketbase-types'
 import { pb } from '../../../globals'
 import { showToast } from '../../../components/Toast'
 import { showConfirm } from '../../../components/ConfirmationModal'
 
 export const ChoreEditModal = component(
-  (editingChore: Signal<ChoresResponse | null>, onDelete: () => void) => {
+  (
+    editingChore: Signal<ChoresWithLatestCompletionsResponse | null>,
+    onDelete: () => void
+  ) => {
     const name = signal('')
     const description = signal('')
     effect(() => {

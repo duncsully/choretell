@@ -1,4 +1,4 @@
-import { ChoresResponse } from './../../../pocketbase-types'
+import { ChoresWithLatestCompletionsResponse as Chore } from './../../../pocketbase-types'
 import { Computed, component, computedGroup, effect, html, signal } from 'solit'
 import { pb } from '../../globals'
 import { repeat } from 'lit-html/directives/repeat.js'
@@ -7,16 +7,18 @@ import '@ionic/core/components/ion-textarea'
 import { showToast } from '../../components/Toast'
 import { ChoreEditModal } from './components/ChoreEditModal'
 import { ChoreAddForm } from './components/ChoreAddForm'
+import { when } from 'lit-html/directives/when.js'
 
+// TODO: Empty UI
 // TODO: Modal component that dismounts children when closed so state gets reset?
 // TODO: Error UI when fetching items fails (use until?)
 
 export const ChoreListPage = component(() => {
-  const chores = signal([] as ChoresResponse[])
+  const chores = signal([] as Chore[])
 
   effect(() => {
     console.log('fetching chores')
-    pb.collection('chores')
+    pb.collection('choresWithLatestCompletions')
       .getFullList()
       .then(chores.set)
       .catch((err) => {
@@ -25,13 +27,13 @@ export const ChoreListPage = component(() => {
       })
 
     const unsub = pb
-      .collection('chores')
+      .collection('choresWithLatestCompletions')
       .subscribe('*', ({ action, record }) => {
         const updaters = {
-          create: (prev: ChoresResponse[]) => [...prev, record],
-          update: (prev: ChoresResponse[]) =>
+          create: (prev: Chore[]) => [...prev, record],
+          update: (prev: Chore[]) =>
             prev.map((item) => (item.id === record.id ? record : item)),
-          delete: (prev: ChoresResponse[]) =>
+          delete: (prev: Chore[]) =>
             prev.filter((item) => item.id !== record.id),
         } as const
         console.log('chore', action, record)
@@ -41,7 +43,7 @@ export const ChoreListPage = component(() => {
   })
 
   const [notDone, done] = computedGroup(() => {
-    const result = chores.get().reduce<[ChoresResponse[], ChoresResponse[]]>(
+    const result = chores.get().reduce<[Chore[], Chore[]]>(
       (results, item) => {
         results[+item.done].push(item)
         return results
@@ -61,9 +63,9 @@ export const ChoreListPage = component(() => {
 
   const isAdding = signal(false)
 
-  const editingChore = signal(null as ChoresResponse | null)
+  const editingChore = signal(null as Chore | null)
 
-  const makeChoreList = (list: Computed<ChoresResponse[]>) => () =>
+  const makeChoreList = (list: Computed<Chore[]>) => () =>
     repeat(
       list.get(),
       (chore) => `${chore.id}_${chore.updated}`,
@@ -141,10 +143,18 @@ export const ChoreListPage = component(() => {
   `
 })
 
-const ChoreItem = component((chore: ChoresResponse, onClick: () => void) => {
+const ChoreItem = component((chore: Chore, onClick: () => void) => {
   const handleCheck = async (e: Event) => {
     e.stopPropagation()
     try {
+      // TODO: This should probably be handled on the BE
+      if (!chore.done) {
+        await pb
+          .collection('completions')
+          .create({ by: pb.authStore.model?.id, chore: chore.id })
+      } else {
+        await pb.collection('completions').delete(chore.completion_id)
+      }
       await pb.collection('chores').update(chore.id, { done: !chore.done })
     } catch (err) {
       console.error(err)
@@ -163,8 +173,26 @@ const ChoreItem = component((chore: ChoresResponse, onClick: () => void) => {
         <span style=${chore.done ? 'text-decoration: line-through;' : ''}>
           ${chore.name}
         </span>
-        <p>${chore.description}</p>
+        ${when(
+          chore.done,
+          () =>
+            html`<p>
+              ${new Date(chore.completed_time as string).toLocaleString()}
+            </p>`
+        )}
       </ion-label>
+      ${when(
+        chore.done,
+        () =>
+          html`
+            <ion-avatar slot="end">
+              <img
+                alt="Silhouette of a person's head"
+                src="https://ionicframework.com/docs/img/demos/avatar.svg"
+              />
+            </ion-avatar>
+          `
+      )}
     </ion-item>
   `
 })
