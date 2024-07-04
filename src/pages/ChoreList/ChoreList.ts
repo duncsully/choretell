@@ -1,4 +1,3 @@
-import { ChoresWithLatestCompletionsResponse as Chore } from './../../../pocketbase-types'
 import { Computed, component, computedGroup, effect, html, signal } from 'solit'
 import { pb } from '../../globals'
 import { repeat } from 'lit-html/directives/repeat.js'
@@ -8,64 +7,77 @@ import { showToast } from '../../components/Toast'
 import { ChoreEditModal } from './components/ChoreEditModal'
 import { ChoreAddForm } from './components/ChoreAddForm'
 import { when } from 'lit-html/directives/when.js'
+import type { ChoreWithLastCompletion } from '../../types'
 
 // TODO: Empty UI
-// TODO: Modal component that dismounts children when closed so state gets reset?
 // TODO: Error UI when fetching items fails (use until?)
 
+const getLastCompletion = (chore: ChoreWithLastCompletion) =>
+  chore.expand?.last_completions_via_chore[0]!
+
 export const ChoreListPage = component(() => {
-  const chores = signal([] as Chore[])
+  const chores = signal([] as ChoreWithLastCompletion[])
 
   effect(() => {
     console.log('fetching chores')
-    pb.collection('choresWithLatestCompletions')
-      .getFullList()
+    pb.collection('chores')
+      .getFullList<ChoreWithLastCompletion>({
+        expand: 'last_completions_via_chore',
+      })
       .then(chores.set)
       .catch((err) => {
         console.log(err)
         showToast({ message: 'Failed to load chores', color: 'danger' })
       })
 
-    const unsub = pb
-      .collection('choresWithLatestCompletions')
-      .subscribe('*', ({ action, record }) => {
+    const unsub = pb.collection('chores').subscribe(
+      '*',
+      ({ action, record }) => {
+        const typedRecord = record as ChoreWithLastCompletion
         const updaters = {
-          create: (prev: Chore[]) => [...prev, record],
-          update: (prev: Chore[]) =>
-            prev.map((item) => (item.id === record.id ? record : item)),
-          delete: (prev: Chore[]) =>
-            prev.filter((item) => item.id !== record.id),
+          create: (prev: ChoreWithLastCompletion[]) => [...prev, typedRecord],
+          update: (prev: ChoreWithLastCompletion[]) =>
+            prev.map((item) =>
+              item.id === typedRecord.id ? typedRecord : item
+            ),
+          delete: (prev: ChoreWithLastCompletion[]) =>
+            prev.filter((item) => item.id !== typedRecord.id),
         } as const
         console.log('chore', action, record)
         chores.update(updaters[action as keyof typeof updaters])
-      })
+      },
+      { expand: 'last_completions_via_chore' }
+    )
     return () => unsub.then((u) => u())
   })
 
   const [notDone, done] = computedGroup(() => {
-    const result = chores.get().reduce<[Chore[], Chore[]]>(
-      (results, item) => {
-        results[+item.done].push(item)
-        return results
-      },
-      [[], []]
-    )
+    const result = chores
+      .get()
+      .reduce<[ChoreWithLastCompletion[], ChoreWithLastCompletion[]]>(
+        (results, item) => {
+          results[+item.done].push(item)
+          return results
+        },
+        [[], []]
+      )
     result[0].sort(
       (a, b) => new Date(a.created).valueOf() - new Date(b.created).valueOf()
     )
-    // TODO: Set completions and sort by that
-    // Last update was likely being checked off, reverse sort
+
     result[1].sort(
-      (a, b) => new Date(b.updated).valueOf() - new Date(a.updated).valueOf()
+      (a, b) =>
+        new Date(getLastCompletion(b).last_completed as string).valueOf() -
+        new Date(getLastCompletion(a).last_completed as string).valueOf()
     )
     return result
   })
 
   const isAdding = signal(false)
 
-  const editingChore = signal(null as Chore | null)
+  const editingChore = signal(null as ChoreWithLastCompletion | null)
 
-  const makeChoreList = (list: Computed<Chore[]>) => () =>
+  const makeChoreList = (list: Computed<ChoreWithLastCompletion[]>) => () =>
     repeat(
       list.get(),
       (chore) => `${chore.id}_${chore.updated}`,
@@ -143,56 +155,65 @@ export const ChoreListPage = component(() => {
   `
 })
 
-const ChoreItem = component((chore: Chore, onClick: () => void) => {
-  const handleCheck = async (e: Event) => {
-    e.stopPropagation()
-    try {
-      // TODO: This should probably be handled on the BE
-      if (!chore.done) {
-        await pb
-          .collection('completions')
-          .create({ by: pb.authStore.model?.id, chore: chore.id })
-      } else {
-        await pb.collection('completions').delete(chore.completion_id)
+const ChoreItem = component(
+  (chore: ChoreWithLastCompletion, onClick: () => void) => {
+    const handleCheck = async (e: Event) => {
+      e.stopPropagation()
+      try {
+        // TODO: This should probably be handled on the BE
+        if (!chore.done) {
+          await pb
+            .collection('completions')
+            .create({ by: pb.authStore.model?.id, chore: chore.id })
+        } else {
+          await pb.collection('completions').delete(getLastCompletion(chore).id)
+        }
+        await pb.collection('chores').update(chore.id, { done: !chore.done })
+      } catch (err) {
+        console.error(err)
+        showToast({ message: 'Failed to update item', color: 'danger' })
       }
-      await pb.collection('chores').update(chore.id, { done: !chore.done })
-    } catch (err) {
-      console.error(err)
-      showToast({ message: 'Failed to update item', color: 'danger' })
     }
-  }
-  return html`
-    <ion-item button @click=${onClick}>
-      <ion-button slot="start" fill="clear" size="large" @click=${handleCheck}>
-        <ion-icon
-          name=${chore.done ? 'checkbox-outline' : 'square-outline'}
-          slot="icon-only"
-        ></ion-icon>
-      </ion-button>
-      <ion-label class="ion-text-nowrap">
-        <span style=${chore.done ? 'text-decoration: line-through;' : ''}>
-          ${chore.name}
-        </span>
+    return html`
+      <ion-item button @click=${onClick}>
+        <ion-button
+          slot="start"
+          fill="clear"
+          size="large"
+          @click=${handleCheck}
+        >
+          <ion-icon
+            name=${chore.done ? 'checkbox-outline' : 'square-outline'}
+            slot="icon-only"
+          ></ion-icon>
+        </ion-button>
+        <ion-label class="ion-text-nowrap">
+          <span style=${chore.done ? 'text-decoration: line-through;' : ''}>
+            ${chore.name}
+          </span>
+          ${when(
+            chore.done,
+            () =>
+              html`<p>
+                ${new Date(
+                  getLastCompletion(chore)?.last_completed as string
+                ).toLocaleString()}
+              </p>`
+          )}
+        </ion-label>
         ${when(
           chore.done,
           () =>
-            html`<p>
-              ${new Date(chore.completed_time as string).toLocaleString()}
-            </p>`
+            html`
+              <ion-avatar slot="end">
+                <img
+                  alt="Silhouette of a person's head"
+                  src="https://ionicframework.com/docs/img/demos/avatar.svg"
+                />
+              </ion-avatar>
+            `
         )}
-      </ion-label>
-      ${when(
-        chore.done,
-        () =>
-          html`
-            <ion-avatar slot="end">
-              <img
-                alt="Silhouette of a person's head"
-                src="https://ionicframework.com/docs/img/demos/avatar.svg"
-              />
-            </ion-avatar>
-          `
-      )}
-    </ion-item>
-  `
-})
+      </ion-item>
+    `
+  }
+)
