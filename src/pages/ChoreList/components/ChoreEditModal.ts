@@ -57,8 +57,8 @@ export const ChoreEditModal = component(
         <ion-header>
           <ion-toolbar>
             <ion-buttons slot="start">
-              <ion-button @click=${handleEditBack} fill="clear">
-                <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+              <ion-button @click=${handleEditBack}>
+                <ion-icon name="arrow-back" slot="icon-only"></ion-icon>
               </ion-button>
             </ion-buttons>
             <ion-buttons slot="end">
