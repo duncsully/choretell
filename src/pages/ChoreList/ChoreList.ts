@@ -9,9 +9,11 @@ import { ChoreAddForm } from './components/ChoreAddForm'
 import { when } from 'lit-html/directives/when.js'
 import type { ChoreWithLastCompletion } from '../../types'
 import { formatDistanceToNow } from 'date-fns'
+import { ProfileModal } from './components/ProfileModal'
 
 // TODO: Empty UI
 // TODO: Error UI when fetching items fails (use until?)
+// TODO: Update completed list avatars when user changes avatar?
 
 const getLastCompletion = (chore: ChoreWithLastCompletion) =>
   chore.expand?.last_completions_via_chore[0]!
@@ -23,7 +25,7 @@ export const ChoreListPage = component(() => {
     console.log('fetching chores')
     pb.collection('chores')
       .getFullList<ChoreWithLastCompletion>({
-        expand: 'last_completions_via_chore',
+        expand: 'last_completions_via_chore.by',
       })
       .then(chores.set)
       .catch((err) => {
@@ -68,8 +70,8 @@ export const ChoreListPage = component(() => {
 
     result[1].sort(
       (a, b) =>
-        new Date(getLastCompletion(b).last_completed as string).valueOf() -
-        new Date(getLastCompletion(a).last_completed as string).valueOf()
+        new Date(getLastCompletion(b).last_completed!).valueOf() -
+        new Date(getLastCompletion(a).last_completed!).valueOf()
     )
     return result
   })
@@ -124,15 +126,39 @@ export const ChoreListPage = component(() => {
     })
   }
 
+  const isProfileOpen = signal(false)
+
   return html`
     <ion-header>
       <ion-toolbar>
         <ion-title>Choretell</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click=${() => pb.authStore.clear()}>
-            Logout
-            <ion-icon slot="end" name="log-out-outline"></ion-icon>
+          <ion-button id="user">
+            <ion-icon name="person-circle-outline"></ion-icon>
           </ion-button>
+          <ion-popover
+            trigger="user"
+            @click=${(e: MouseEvent) => {
+              ;(e.target as HTMLElement)?.closest('ion-popover')?.dismiss()
+            }}
+          >
+            <ion-content>
+              <ion-list lines="none" buttons>
+                <ion-item button @click=${() => isProfileOpen.set(true)}
+                  >Profile</ion-item
+                >
+
+                <ion-item button @click=${() => pb.authStore.clear()}>
+                  Logout
+                  <ion-icon
+                    style="margin-left: 4px;"
+                    color="text"
+                    name="log-out-outline"
+                  ></ion-icon>
+                </ion-item>
+              </ion-list>
+            </ion-content>
+          </ion-popover>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -153,6 +179,7 @@ export const ChoreListPage = component(() => {
       </ion-fab>
     </ion-content>
     ${ChoreAddForm(isAdding)} ${ChoreEditModal(editingChore, handleDelete)}
+    ${ProfileModal(isProfileOpen)}
   `
 })
 
@@ -194,6 +221,11 @@ const ChoreItem = component(
       }
     })
 
+    const completedByUser = getLastCompletion(chore)?.expand?.by
+    const completedByAvatar = completedByUser?.avatar
+      ? pb.files.getUrl(completedByUser, completedByUser.avatar)
+      : 'https://ionicframework.com/docs/img/demos/avatar.svg'
+
     return html`
       <ion-item button @click=${onClick}>
         <ion-button
@@ -220,7 +252,7 @@ const ChoreItem = component(
               <ion-avatar slot="end">
                 <img
                   alt="Silhouette of a person's head"
-                  src="https://ionicframework.com/docs/img/demos/avatar.svg"
+                  src=${completedByAvatar}
                 />
               </ion-avatar>
             `
