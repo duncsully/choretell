@@ -18,6 +18,7 @@ import { when } from 'lit-html/directives/when.js'
 import type { ChoreWithLastCompletion } from '../../types'
 import { formatDistance } from 'date-fns'
 import { ProfileModal } from './components/ProfileModal'
+import { user } from '../../App'
 
 // TODO: Empty UI
 // TODO: Error UI when fetching items fails (use until?)
@@ -139,8 +140,6 @@ export const ChoreListPage = component(() => {
 
   const isProfileOpen = signal(false)
 
-  const user = pb.authStore.model!
-
   return html`
     <ion-header>
       <ion-toolbar>
@@ -149,9 +148,10 @@ export const ChoreListPage = component(() => {
           <ion-button id="user" style="border-radius: 50%">
             <ion-avatar style="width: 32px; height: 32px;">
               <img
-                src=${user.avatar
-                  ? pb.files.getUrl(user, user.avatar)
-                  : 'https://ionicframework.com/docs/img/demos/avatar.svg'}
+                src=${() =>
+                  user.value?.avatar
+                    ? pb.files.getUrl(user.value, user.value.avatar)
+                    : 'https://ionicframework.com/docs/img/demos/avatar.svg'}
               />
             </ion-avatar>
           </ion-button>

@@ -10,11 +10,17 @@ import { currentToast } from './components/Toast'
 // TODO: Better styling solution?
 // TODO: Bundle ionic components properly?
 
+// TODO: Make this context when that works
+export const user = signal(pb.authStore.model)
+
 export const App = component(() => {
   const loggedIn = signal(pb.authStore.isValid)
 
   effect(() => {
-    return pb.authStore.onChange(() => loggedIn.set(pb.authStore.isValid), true)
+    return pb.authStore.onChange(() => {
+      loggedIn.set(pb.authStore.isValid)
+      user.set(pb.authStore.model)
+    }, true)
   })
 
   return html`
