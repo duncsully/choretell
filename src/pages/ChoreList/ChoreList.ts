@@ -128,13 +128,21 @@ export const ChoreListPage = component(() => {
 
   const isProfileOpen = signal(false)
 
+  const user = pb.authStore.model!
+
   return html`
     <ion-header>
       <ion-toolbar>
         <ion-title>Choretell</ion-title>
         <ion-buttons slot="end">
-          <ion-button id="user">
-            <ion-icon name="person-circle-outline"></ion-icon>
+          <ion-button id="user" style="border-radius: 50%">
+            <ion-avatar style="width: 32px; height: 32px;">
+              <img
+                src=${user.avatar
+                  ? pb.files.getUrl(user, user.avatar)
+                  : 'https://ionicframework.com/docs/img/demos/avatar.svg'}
+              />
+            </ion-avatar>
           </ion-button>
           <ion-popover
             trigger="user"
@@ -144,9 +152,9 @@ export const ChoreListPage = component(() => {
           >
             <ion-content>
               <ion-list lines="none" buttons>
-                <ion-item button @click=${() => isProfileOpen.set(true)}
-                  >Profile</ion-item
-                >
+                <ion-item button @click=${() => isProfileOpen.set(true)}>
+                  Profile
+                </ion-item>
 
                 <ion-item button @click=${() => pb.authStore.clear()}>
                   Logout
