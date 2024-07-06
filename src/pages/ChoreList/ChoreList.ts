@@ -1,4 +1,12 @@
-import { Computed, component, computedGroup, effect, html, signal } from 'solit'
+import {
+  Computed,
+  component,
+  computed,
+  computedGroup,
+  effect,
+  html,
+  signal,
+} from 'solit'
 import { pb } from '../../globals'
 import { repeat } from 'lit-html/directives/repeat.js'
 // Adds type safety for component
@@ -8,7 +16,7 @@ import { ChoreEditModal } from './components/ChoreEditModal'
 import { ChoreAddForm } from './components/ChoreAddForm'
 import { when } from 'lit-html/directives/when.js'
 import type { ChoreWithLastCompletion } from '../../types'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistance } from 'date-fns'
 import { ProfileModal } from './components/ProfileModal'
 
 // TODO: Empty UI
@@ -49,7 +57,7 @@ export const ChoreListPage = component(() => {
         console.log('chore', action, record)
         chores.update(updaters[action as keyof typeof updaters])
       },
-      { expand: 'last_completions_via_chore' }
+      { expand: 'last_completions_via_chore.by' }
     )
     return () => unsub.then((u) => u())
   })
@@ -80,11 +88,14 @@ export const ChoreListPage = component(() => {
 
   const editingChore = signal(null as ChoreWithLastCompletion | null)
 
+  // Track current time for relative time display, passing it to each item
+  // so only one interval is needed
+  const now = computed(() => Date.now(), { computeOnInterval: 30_000 })
   const makeChoreList = (list: Computed<ChoreWithLastCompletion[]>) => () =>
     repeat(
       list.get(),
       (chore) => `${chore.id}_${chore.updated}`,
-      (chore) => ChoreItem(chore, () => editingChore.set(chore))
+      (chore) => ChoreItem(chore, () => editingChore.set(chore), now)
     )
 
   // Optimistically update and allow undoing delete
@@ -192,7 +203,11 @@ export const ChoreListPage = component(() => {
 })
 
 const ChoreItem = component(
-  (chore: ChoreWithLastCompletion, onClick: () => void) => {
+  (
+    chore: ChoreWithLastCompletion,
+    onClick: () => void,
+    now: Computed<number>
+  ) => {
     const handleCheck = async (e: Event) => {
       e.stopPropagation()
       try {
@@ -211,23 +226,12 @@ const ChoreItem = component(
       }
     }
 
-    const completedDateTime = getLastCompletion(chore)?.last_completed as string
-    const relativeTime = signal(
+    const completedDateTime = getLastCompletion(chore)?.last_completed
+    const relativeTime = computed(() =>
       completedDateTime
-        ? formatDistanceToNow(completedDateTime, { addSuffix: true })
+        ? formatDistance(completedDateTime, now.get(), { addSuffix: true })
         : ''
     )
-    effect(() => {
-      if (completedDateTime) {
-        const int = setInterval(() => {
-          relativeTime.set(
-            formatDistanceToNow(completedDateTime, { addSuffix: true })
-          )
-        }, 1_000 * 30)
-
-        return () => clearInterval(int)
-      }
-    })
 
     const completedByUser = getLastCompletion(chore)?.expand?.by
     const completedByAvatar = completedByUser?.avatar
