@@ -4,17 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "conc --kill-others \"vite\" \"cd server && go run main.go serve\"",
-    "start": "cd server && choretell serve",
-    "build": "npm run build:client && npm run build:server",
-    "build:client": "tsc && vite build",
-    "build:server": "cd server && cross-env CGO_ENABLED=0 go build",
+    "dev": "vite",
+    "start": "cd server && pocketbase.exe serve",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "pb-typegen": "npx pocketbase-typegen --db ./server/pb_data/data.db",
     "test": "vitest"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
