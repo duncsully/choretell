@@ -211,14 +211,6 @@ const ChoreItem = component(
     const handleCheck = async (e: Event) => {
       e.stopPropagation()
       try {
-        // TODO: This should probably be handled on the BE
-        if (!chore.done) {
-          await pb
-            .collection('completions')
-            .create({ by: pb.authStore.model?.id, chore: chore.id })
-        } else {
-          await pb.collection('completions').delete(getLastCompletion(chore).id)
-        }
         await pb.collection('chores').update(chore.id, { done: !chore.done })
       } catch (err) {
         console.error(err)
