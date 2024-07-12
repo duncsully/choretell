@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "start": "cd server && pocketbase.exe serve",
+    "start": "cd server && nodemon pocketbase.exe serve",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "pb-typegen": "npx pocketbase-typegen --db ./server/pb_data/data.db",
@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
+    "nodemon": "^3.1.4",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
     "vitest": "^1.6.0"
