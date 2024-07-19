@@ -41,7 +41,7 @@ export const LoginPage = component(() => {
   return html`
     <ion-content>
       <ion-row
-        class="ion-justify-content-center ion-align-items-center"
+        class="ion-align-items-center"
         style="flex-direction: column; height: 100%;"
       >
         <ion-text color="primary">
