@@ -2,8 +2,6 @@ import { bind, component, html, signal } from 'solit'
 import { pb } from '../../globals'
 import { showToast } from '../../components/Toast'
 
-// TODO: Form moves around when switching inputs
-
 export const LoginPage = component(() => {
   const handleForm = (e: SubmitEvent) => {
     e.preventDefault()
