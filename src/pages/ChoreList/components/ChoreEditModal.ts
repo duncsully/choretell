@@ -3,6 +3,7 @@ import { pb } from '../../../globals'
 import { showToast } from '../../../components/Toast'
 import { showConfirm } from '../../../components/ConfirmationModal'
 import { ChoreWithLastCompletion } from '../../../types'
+import { useBackHandler } from '../../../hooks/useBackHandler'
 
 export const ChoreEditModal = component(
   (
@@ -11,14 +12,17 @@ export const ChoreEditModal = component(
   ) => {
     const name = signal('')
     const description = signal('')
+    const cronExpression = signal('')
     effect(() => {
       name.set(editingChore.get()?.name ?? '')
       description.set(editingChore.get()?.description ?? '')
+      cronExpression.set(editingChore.get()?.cron_expr ?? '')
     })
     const hasChanged = computed(
       () =>
         name.get() !== editingChore.get()?.name ||
-        description.get() !== editingChore.get()?.description
+        description.get() !== editingChore.get()?.description ||
+        cronExpression.get() !== editingChore.get()?.cron_expr
     )
 
     const handleEdit = async (e: SubmitEvent) => {
@@ -28,6 +32,7 @@ export const ChoreEditModal = component(
           await pb.collection('chores').update(editingChore.get()?.id!, {
             name: name.get(),
             description: description.get(),
+            cron_expr: cronExpression.get(),
           })
         }
         editingChore.reset()
@@ -49,6 +54,13 @@ export const ChoreEditModal = component(
         editingChore.reset()
       }
     }
+
+    useBackHandler(() => {
+      if (editingChore.get()) {
+        handleEditBack()
+        return true
+      }
+    })
 
     const showOverflow = signal(false)
 
@@ -109,6 +121,10 @@ export const ChoreEditModal = component(
             >
               <ion-icon name="reader-outline" slot="start"></ion-icon>
             </ion-textarea>
+            <ion-input
+              placeholder="Cron expressions"
+              .value=${bind(cronExpression)}
+            ></ion-input>
           </form>
         </ion-content>
         <ion-footer>

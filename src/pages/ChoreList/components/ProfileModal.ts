@@ -1,8 +1,12 @@
 import { computed, html, signal, Signal } from 'solit'
 import { pb } from '../../../globals'
 import { showToast } from '../../../components/Toast'
+import { useResetOnBack } from '../../../hooks/useBackHandler'
 
 export const ProfileModal = (isOpen: Signal<boolean>) => {
+  // TODO: Really ought to have a confirmation modal here too
+  useResetOnBack(isOpen)
+
   const user = pb.authStore.model!
   const avatar = signal(null as File | null)
   const avatarPreview = computed(() => {

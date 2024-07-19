@@ -3,6 +3,7 @@ import { pb } from '../../../globals'
 import { ref, createRef } from 'lit-html/directives/ref.js'
 import { showConfirm } from '../../../components/ConfirmationModal'
 import { showToast } from '../../../components/Toast'
+import { useBackHandler } from '../../../hooks/useBackHandler'
 
 export const ChoreAddForm = component((isAdding: Signal<boolean>) => {
   const name = signal('')
@@ -44,6 +45,13 @@ export const ChoreAddForm = component((isAdding: Signal<boolean>) => {
       resetForm()
     }
   }
+
+  useBackHandler(() => {
+    if (isAdding.get()) {
+      handleDismiss()
+      return true
+    }
+  })
 
   const firstInputRef = createRef<HTMLIonInputElement>()
   const focusFirstInput = () => {
