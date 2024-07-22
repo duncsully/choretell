@@ -36,11 +36,84 @@ export type AuthSystemFields<T = never> = {
 
 // Record types for each collection
 
+export enum ChoresRepeatSelectionsOptions {
+	"E-31" = "-31",
+	"E-30" = "-30",
+	"E-29" = "-29",
+	"E-28" = "-28",
+	"E-27" = "-27",
+	"E-26" = "-26",
+	"E-25" = "-25",
+	"E-24" = "-24",
+	"E-23" = "-23",
+	"E-22" = "-22",
+	"E-21" = "-21",
+	"E-20" = "-20",
+	"E-19" = "-19",
+	"E-18" = "-18",
+	"E-17" = "-17",
+	"E-16" = "-16",
+	"E-15" = "-15",
+	"E-14" = "-14",
+	"E-13" = "-13",
+	"E-12" = "-12",
+	"E-11" = "-11",
+	"E-10" = "-10",
+	"E-9" = "-9",
+	"E-8" = "-8",
+	"E-7" = "-7",
+	"E-6" = "-6",
+	"E-5" = "-5",
+	"E-4" = "-4",
+	"E-3" = "-3",
+	"E-2" = "-2",
+	"E-1" = "-1",
+	"E1" = "1",
+	"E2" = "2",
+	"E3" = "3",
+	"E4" = "4",
+	"E5" = "5",
+	"E6" = "6",
+	"E7" = "7",
+	"E8" = "8",
+	"E9" = "9",
+	"E10" = "10",
+	"E11" = "11",
+	"E12" = "12",
+	"E13" = "13",
+	"E14" = "14",
+	"E15" = "15",
+	"E16" = "16",
+	"E17" = "17",
+	"E18" = "18",
+	"E19" = "19",
+	"E20" = "20",
+	"E21" = "21",
+	"E22" = "22",
+	"E23" = "23",
+	"E24" = "24",
+	"E25" = "25",
+	"E26" = "26",
+	"E27" = "27",
+	"E28" = "28",
+	"E29" = "29",
+	"E30" = "30",
+	"E31" = "31",
+}
+
+export enum ChoresRepeatUnitOptions {
+	"week" = "week",
+	"month" = "month",
+}
 export type ChoresRecord = {
 	cron_expr?: string
 	description?: HTMLString
 	done?: boolean
 	name: string
+	repeat_interval?: number
+	repeat_selections?: ChoresRepeatSelectionsOptions[]
+	repeat_unit?: ChoresRepeatUnitOptions
+	start_on?: IsoDateString
 }
 
 export type CompletionsRecord = {
