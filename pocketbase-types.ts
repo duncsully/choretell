@@ -81,6 +81,16 @@ export enum ChoresRepeatUnitOptions {
 	"week" = "week",
 	"month" = "month",
 }
+
+export enum ChoresRepeatWeekdaysOptions {
+	"Su" = "Su",
+	"Mo" = "Mo",
+	"Tu" = "Tu",
+	"We" = "We",
+	"Th" = "Th",
+	"Fr" = "Fr",
+	"Sa" = "Sa",
+}
 export type ChoresRecord = {
 	cron_expr?: string
 	description?: HTMLString
@@ -89,6 +99,7 @@ export type ChoresRecord = {
 	repeat_interval?: number
 	repeat_selections?: ChoresRepeatSelectionsOptions[]
 	repeat_unit?: ChoresRepeatUnitOptions
+	repeat_weekdays?: ChoresRepeatWeekdaysOptions[]
 	start_on?: IsoDateString
 }
 
