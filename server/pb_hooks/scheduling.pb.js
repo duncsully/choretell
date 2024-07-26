@@ -2,14 +2,17 @@
 
 cronAdd('choreResetter', '* * * * *', () => {
   try {
-    const { cronExpressionMatchesNow } = require(`${__hooks}/cronUtils`)
-    // Check each chore's own cron expression and determine if it should be set done: false
+    const { choreShouldReset } = require(`${__hooks}/choreShouldReset`)
+
     const chores = $app
       .dao()
-      .findRecordsByFilter('chores', 'cron_expr != NULL && done = True')
+      // Will need to update this to not look for done if we ever want to
+      // send notifications for chores that are not done but still scheduled
+      .findRecordsByFilter('chores', 'done = True && start_on <= @now')
+    console.log('Chores to check:', chores.length)
+
     chores.forEach((chore) => {
-      // The cron we have at home that is actually better than the one we have in PocketBase
-      if (cronExpressionMatchesNow(chore.get('cron_expr'))) {
+      if (choreShouldReset(chore)) {
         console.log('Resetting chore:', chore.get('name'))
         chore.set('done', false)
         $app.dao().saveRecord(chore)
