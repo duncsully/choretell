@@ -1,20 +1,51 @@
-import { Signal, component, html, signal, bind, computed } from 'solit'
+import { Signal, component, html, signal, bind, computed, effect } from 'solit'
 import { pb } from '../../../globals'
 import { ref, createRef } from 'lit-html/directives/ref.js'
 import { showConfirm } from '../../../components/ConfirmationModal'
 import { showToast } from '../../../components/Toast'
 import { useBackHandler } from '../../../hooks/useBackHandler'
+import {
+  ChoresRepeatSelectionsOptions,
+  ChoresRepeatUnitOptions,
+  ChoresRepeatWeekdaysOptions,
+} from '../../../../pocketbase-types'
+import { ChoreScheduleButton } from './ChoreScheduleButton'
 
 export const ChoreAddForm = component((isAdding: Signal<boolean>) => {
   const name = signal('')
   const description = signal('')
-  const hasChanges = computed(() => name.get() || description.get())
+  const startOn = signal(new Date().toISOString())
+  const repeatInterval = signal(0)
+  const repeatUnit = signal('' as ChoresRepeatUnitOptions | '')
+  const repeatWeekdays = signal([] as ChoresRepeatWeekdaysOptions[])
+  const repeatSelections = signal([] as ChoresRepeatSelectionsOptions[])
+  const hasChanges = computed(
+    () =>
+      name.get() ||
+      description.get() ||
+      repeatInterval.get() ||
+      repeatUnit.get() ||
+      repeatWeekdays.get().length ||
+      repeatSelections.get().length,
+    { cacheSize: 0 }
+  )
   const isInvalid = computed(() => !name.get().trim())
 
   const resetForm = () => {
     name.reset()
     description.reset()
+    startOn.set(new Date(0).toISOString())
+    repeatInterval.reset()
+    repeatUnit.reset()
+    repeatWeekdays.reset()
+    repeatSelections.reset()
   }
+
+  effect(() => {
+    if (isAdding.get() && startOn.get() === new Date(0).toISOString()) {
+      startOn.set(new Date().toISOString())
+    }
+  })
 
   const handleAdd = async (e: SubmitEvent) => {
     e.preventDefault()
@@ -22,6 +53,11 @@ export const ChoreAddForm = component((isAdding: Signal<boolean>) => {
       await pb.collection('chores').create({
         name: name.get(),
         description: description.get(),
+        start_on: startOn.get(),
+        repeat_interval: repeatInterval.get(),
+        repeat_unit: repeatUnit.get(),
+        repeat_weekdays: repeatWeekdays.get(),
+        repeat_selections: repeatSelections.get(),
       })
       isAdding.set(false)
       resetForm()
@@ -83,6 +119,13 @@ export const ChoreAddForm = component((isAdding: Signal<boolean>) => {
             auto-grow
             .value=${bind(description)}
           ></ion-textarea>
+          ${ChoreScheduleButton(
+            startOn,
+            repeatInterval,
+            repeatUnit,
+            repeatWeekdays,
+            repeatSelections
+          )}
           <ion-button
             type="submit"
             fill="clear"

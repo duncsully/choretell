@@ -4,6 +4,12 @@ import { showToast } from '../../../components/Toast'
 import { showConfirm } from '../../../components/ConfirmationModal'
 import { ChoreWithLastCompletion } from '../../../types'
 import { useBackHandler } from '../../../hooks/useBackHandler'
+import { ChoreScheduleButton } from './ChoreScheduleButton'
+import {
+  ChoresRepeatSelectionsOptions,
+  ChoresRepeatUnitOptions,
+  ChoresRepeatWeekdaysOptions,
+} from '../../../../pocketbase-types'
 
 export const ChoreEditModal = component(
   (
@@ -12,17 +18,45 @@ export const ChoreEditModal = component(
   ) => {
     const name = signal('')
     const description = signal('')
-    const cronExpression = signal('')
+    const startOn = signal('')
+    const repeatInterval = signal(0)
+    const repeatUnit = signal<ChoresRepeatUnitOptions | ''>('')
+    const repeatWeekdays = signal([] as ChoresRepeatWeekdaysOptions[])
+    const repeatSelections = signal([] as ChoresRepeatSelectionsOptions[])
     effect(() => {
       name.set(editingChore.get()?.name ?? '')
       description.set(editingChore.get()?.description ?? '')
-      cronExpression.set(editingChore.get()?.cron_expr ?? '')
+      startOn.set(
+        editingChore.get()?.start_on.replace(' ', 'T') ||
+          new Date().toISOString()
+      )
+      repeatInterval.set(editingChore.get()?.repeat_interval ?? 0)
+      repeatUnit.set(editingChore.get()?.repeat_unit ?? '')
+      repeatWeekdays.set(editingChore.get()?.repeat_weekdays ?? [])
+      repeatSelections.set(editingChore.get()?.repeat_selections ?? [])
     })
     const hasChanged = computed(
       () =>
         name.get() !== editingChore.get()?.name ||
         description.get() !== editingChore.get()?.description ||
-        cronExpression.get() !== editingChore.get()?.cron_expr
+        startOn.get() !== editingChore.get()?.start_on.replace(' ', 'T') ||
+        repeatInterval.get() !== editingChore.get()?.repeat_interval ||
+        repeatUnit.get() !== editingChore.get()?.repeat_unit ||
+        repeatWeekdays.get().length !==
+          editingChore.get()?.repeat_weekdays?.length ||
+        repeatWeekdays
+          .get()
+          .some(
+            (weekday) => !editingChore.get()?.repeat_weekdays?.includes(weekday)
+          ) ||
+        repeatSelections.get().length !==
+          editingChore.get()?.repeat_selections?.length ||
+        repeatSelections
+          .get()
+          .some(
+            (selection) =>
+              !editingChore.get()?.repeat_selections?.includes(selection)
+          )
     )
 
     const handleEdit = async (e: SubmitEvent) => {
@@ -32,7 +66,11 @@ export const ChoreEditModal = component(
           await pb.collection('chores').update(editingChore.get()?.id!, {
             name: name.get(),
             description: description.get(),
-            cron_expr: cronExpression.get(),
+            start_on: startOn.get(),
+            repeat_interval: repeatInterval.get(),
+            repeat_unit: repeatUnit.get(),
+            repeat_weekdays: repeatWeekdays.get(),
+            repeat_selections: repeatSelections.get(),
           })
         }
         editingChore.reset()
@@ -109,22 +147,35 @@ export const ChoreEditModal = component(
         </ion-header>
         <ion-content class="ion-padding">
           <form id="edit-form" @submit=${handleEdit}>
-            <ion-input
-              placeholder="Chore name"
-              .value=${bind(name)}
-              style="font-size: 1.5em;"
-            ></ion-input>
-            <ion-textarea
-              placeholder="Add details"
-              auto-grow
-              .value=${bind(description)}
-            >
-              <ion-icon name="reader-outline" slot="start"></ion-icon>
-            </ion-textarea>
-            <ion-input
-              placeholder="Cron expressions"
-              .value=${bind(cronExpression)}
-            ></ion-input>
+            <ion-list>
+              <ion-item>
+                <ion-input
+                  placeholder="Chore name"
+                  .value=${bind(name)}
+                  style="font-size: 1.5em;"
+                ></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-icon name="reader-outline" slot="start"></ion-icon>
+                <ion-textarea
+                  placeholder="Add details"
+                  auto-grow
+                  .value=${bind(description)}
+                >
+                </ion-textarea>
+              </ion-item>
+              <ion-item>
+                <ion-icon name="calendar" slot="start"></ion-icon>
+
+                ${ChoreScheduleButton(
+                  startOn,
+                  repeatInterval,
+                  repeatUnit,
+                  repeatWeekdays,
+                  repeatSelections
+                )}
+              </ion-item>
+            </ion-list>
           </form>
         </ion-content>
         <ion-footer>
