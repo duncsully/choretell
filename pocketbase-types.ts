@@ -78,6 +78,7 @@ export enum ChoresRepeatSelectionsOptions {
 }
 
 export enum ChoresRepeatUnitOptions {
+	"day" = "day",
 	"week" = "week",
 	"month" = "month",
 }
