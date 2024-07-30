@@ -23,6 +23,7 @@ export const ChoreEditModal = component(
     const repeatUnit = signal<ChoresRepeatUnitOptions | ''>('')
     const repeatWeekdays = signal([] as ChoresRepeatWeekdaysOptions[])
     const repeatSelections = signal([] as ChoresRepeatSelectionsOptions[])
+    const countFromCompletion = signal(false)
     effect(() => {
       name.set(editingChore.get()?.name ?? '')
       description.set(editingChore.get()?.description ?? '')
@@ -34,6 +35,9 @@ export const ChoreEditModal = component(
       repeatUnit.set(editingChore.get()?.repeat_unit ?? '')
       repeatWeekdays.set(editingChore.get()?.repeat_weekdays ?? [])
       repeatSelections.set(editingChore.get()?.repeat_selections ?? [])
+      countFromCompletion.set(
+        editingChore.get()?.count_from_completion ?? false
+      )
     })
     const hasChanged = computed(
       () =>
@@ -56,7 +60,8 @@ export const ChoreEditModal = component(
           .some(
             (selection) =>
               !editingChore.get()?.repeat_selections?.includes(selection)
-          )
+          ) ||
+        countFromCompletion.get() !== editingChore.get()?.count_from_completion
     )
 
     const handleEdit = async (e: SubmitEvent) => {
@@ -71,6 +76,7 @@ export const ChoreEditModal = component(
             repeat_unit: repeatUnit.get(),
             repeat_weekdays: repeatWeekdays.get(),
             repeat_selections: repeatSelections.get(),
+            count_from_completion: countFromCompletion.get(),
           })
         }
         editingChore.reset()
@@ -172,7 +178,8 @@ export const ChoreEditModal = component(
                   repeatInterval,
                   repeatUnit,
                   repeatWeekdays,
-                  repeatSelections
+                  repeatSelections,
+                  countFromCompletion
                 )}
               </ion-item>
             </ion-list>

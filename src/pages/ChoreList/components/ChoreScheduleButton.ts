@@ -1,4 +1,4 @@
-import { bind, component, computed, effect, html, signal, Signal } from 'solit'
+import { bind, component, computed, html, signal, Signal } from 'solit'
 import {
   ChoresRepeatSelectionsOptions,
   ChoresRepeatUnitOptions,
@@ -10,6 +10,7 @@ import { when } from 'lit-html/directives/when.js'
 import { type CheckboxCustomEvent } from '@ionic/core'
 import { formatDate } from '../../../utils'
 import { formatISO } from 'date-fns'
+import { choose } from 'lit-html/directives/choose.js'
 
 export const ChoreScheduleButton = component(
   (
@@ -17,7 +18,8 @@ export const ChoreScheduleButton = component(
     repeatInterval: Signal<number>,
     repeatUnit: Signal<ChoresRepeatUnitOptions | ''>,
     repeatWeekdays: Signal<ChoresRepeatWeekdaysOptions[]>,
-    repeatSelections: Signal<ChoresRepeatSelectionsOptions[]>
+    repeatSelections: Signal<ChoresRepeatSelectionsOptions[]>,
+    countFromCompletion: Signal<boolean>
   ) => {
     const isModalOpen = signal(false)
     const handleBack = () => {
@@ -37,6 +39,7 @@ export const ChoreScheduleButton = component(
       repeatUnit.set('')
       repeatSelections.set([])
       repeatWeekdays.set([])
+      countFromCompletion.set(false)
     }
 
     const isScheduled = computed(() => {
@@ -55,28 +58,20 @@ export const ChoreScheduleButton = component(
       )
     })
 
-    const repeat = signal(!!repeatUnit.get())
     const handleRepeatChange = (e: CheckboxCustomEvent) => {
       const { checked } = e.detail
-      repeat.set(checked)
 
       if (!checked) {
         repeatInterval.set(0)
         repeatUnit.set('')
         repeatSelections.set([])
         repeatWeekdays.set([])
+        countFromCompletion.set(false)
       } else {
         repeatInterval.set(1)
-        repeatUnit.set(ChoresRepeatUnitOptions.week)
+        repeatUnit.set(ChoresRepeatUnitOptions.day)
       }
     }
-    effect(() => {
-      repeat.set(
-        !!repeatUnit.get() ||
-          repeatWeekdays.get().length > 0 ||
-          repeatSelections.get().length > 0
-      )
-    })
 
     return html`
       <div>
@@ -117,7 +112,7 @@ export const ChoreScheduleButton = component(
             <ion-item>
               <ion-checkbox
                 justify="start"
-                .checked=${repeat}
+                .checked=${() => !!repeatUnit.get()}
                 @ionChange=${handleRepeatChange}
               >
                 Repeat
@@ -126,7 +121,7 @@ export const ChoreScheduleButton = component(
 
             ${() =>
               when(
-                repeat.get(),
+                repeatUnit.get(),
                 () => html`
                   <ion-item>
                     <ion-input
@@ -135,24 +130,39 @@ export const ChoreScheduleButton = component(
                       min="1"
                       .value=${bind(repeatInterval)}
                     ></ion-input>
-                    <ion-radio-group
-                      style="display: flex; gap: 24px;"
-                      .value=${bind(repeatUnit, 'ionChange')}
-                    >
-                      <ion-radio value=${ChoresRepeatUnitOptions.week}>
+                    <ion-select .value=${bind(repeatUnit, 'ionChange')}>
+                      <ion-select-option value=${ChoresRepeatUnitOptions.day}>
+                        Days
+                      </ion-select-option>
+                      <ion-select-option value=${ChoresRepeatUnitOptions.week}>
                         Weeks
-                      </ion-radio>
-                      <ion-radio value=${ChoresRepeatUnitOptions.month}>
+                      </ion-select-option>
+                      <ion-select-option value=${ChoresRepeatUnitOptions.month}>
                         Months
-                      </ion-radio>
-                    </ion-radio-group>
+                      </ion-select-option>
+                    </ion-select>
                   </ion-item>
 
                   <ion-item>
                     ${() =>
-                      repeatUnit.get() === ChoresRepeatUnitOptions.week
-                        ? Object.values(ChoresRepeatWeekdaysOptions).map(
-                            (day) => {
+                      choose(repeatUnit.get(), [
+                        [
+                          ChoresRepeatUnitOptions.day,
+                          () => html`
+                            <ion-checkbox
+                              .checked=${bind(countFromCompletion, 'ionChange')}
+                              justify="start"
+                            >
+                              After last completion
+                            </ion-checkbox>
+                          `,
+                        ],
+                        [
+                          ChoresRepeatUnitOptions.week,
+                          () =>
+                            html`${Object.values(
+                              ChoresRepeatWeekdaysOptions
+                            ).map((day) => {
                               const isSelected = computed(() =>
                                 repeatWeekdays.get().includes(day)
                               )
@@ -171,30 +181,30 @@ export const ChoreScheduleButton = component(
                                     )
                                   }}
                                 >
-                                  <ion-text style="font-size: small;"
-                                    >${day}</ion-text
-                                  >
+                                  <ion-text style="font-size: small;">
+                                    ${day}
+                                  </ion-text>
                                 </ion-chip>
                               `
-                            }
-                          )
-                        : html`
-                            <ion-select
-                              label="Days of month"
-                              multiple
-                              .value=${bind(repeatSelections, 'ionChange')}
-                            >
-                              ${Object.values(
-                                ChoresRepeatSelectionsOptions
-                              ).map(
-                                (selection) => html`
-                                  <ion-select-option value=${selection}>
-                                    ${formatDate(selection)}
-                                  </ion-select-option>
-                                `
-                              )}
-                            </ion-select>
-                          `}
+                            })}`,
+                        ],
+                        [
+                          ChoresRepeatUnitOptions.month,
+                          () => html`<ion-select
+                            label="Days of month"
+                            multiple
+                            .value=${bind(repeatSelections, 'ionChange')}
+                          >
+                            ${Object.values(ChoresRepeatSelectionsOptions).map(
+                              (selection) => html`
+                                <ion-select-option value=${selection}>
+                                  ${formatDate(selection)}
+                                </ion-select-option>
+                              `
+                            )}
+                          </ion-select>`,
+                        ],
+                      ])}
                   </ion-item>
                 `
               )}

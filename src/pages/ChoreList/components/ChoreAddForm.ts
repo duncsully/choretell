@@ -19,14 +19,13 @@ export const ChoreAddForm = component((isAdding: Signal<boolean>) => {
   const repeatUnit = signal('' as ChoresRepeatUnitOptions | '')
   const repeatWeekdays = signal([] as ChoresRepeatWeekdaysOptions[])
   const repeatSelections = signal([] as ChoresRepeatSelectionsOptions[])
+  const countFromCompletion = signal(false)
   const hasChanges = computed(
     () =>
       name.get() ||
       description.get() ||
       repeatInterval.get() ||
-      repeatUnit.get() ||
-      repeatWeekdays.get().length ||
-      repeatSelections.get().length,
+      repeatUnit.get(),
     { cacheSize: 0 }
   )
   const isInvalid = computed(() => !name.get().trim())
@@ -39,6 +38,7 @@ export const ChoreAddForm = component((isAdding: Signal<boolean>) => {
     repeatUnit.reset()
     repeatWeekdays.reset()
     repeatSelections.reset()
+    countFromCompletion.reset()
   }
 
   effect(() => {
@@ -58,6 +58,7 @@ export const ChoreAddForm = component((isAdding: Signal<boolean>) => {
         repeat_unit: repeatUnit.get(),
         repeat_weekdays: repeatWeekdays.get(),
         repeat_selections: repeatSelections.get(),
+        count_from_completion: countFromCompletion.get(),
       })
       isAdding.set(false)
       resetForm()
@@ -124,7 +125,8 @@ export const ChoreAddForm = component((isAdding: Signal<boolean>) => {
             repeatInterval,
             repeatUnit,
             repeatWeekdays,
-            repeatSelections
+            repeatSelections,
+            countFromCompletion
           )}
           <ion-button
             type="submit"
