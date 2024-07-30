@@ -3,8 +3,16 @@
 /**
  * Check if a chore is scheduled to be reset right now
  * @param {models.Record} chore
+ * @param {Date} [lastCompletedAt]
  */
-function choreShouldReset(chore) {
+function choreShouldReset(chore, lastCompletedAt) {
+  const getDaysBetween = (firstDate, secondDate) => {
+    const oneDay = 24 * 60 * 60 * 1000
+    return Math.round(
+      Math.abs((firstDate.getTime() - secondDate.getTime()) / oneDay)
+    )
+  }
+
   const getWeeksBetween = (firstDate, secondDate) => {
     const oneDay = 24 * 60 * 60 * 1000
     return Math.round(
@@ -47,6 +55,16 @@ function choreShouldReset(chore) {
     const repeatSelections = chore.get('repeat_selections')
     const repeatWeekdays = chore.get('repeat_weekdays')
     const thisDay = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][today.getDay()]
+    const countFromCompletion = chore.get('count_from_completion')
+
+    const shouldRepeatDayCheck =
+      repeatUnit === 'day' &&
+      getDaysBetween(
+        today,
+        countFromCompletion ? lastCompletedAt : startOnDate
+      ) %
+        repeatInterval ===
+        0
 
     const shouldRepeatWeekCheck =
       repeatUnit === 'week' &&
@@ -73,7 +91,10 @@ function choreShouldReset(chore) {
       onMonthInterval &&
       (inRepeatSelections || inRepeatSelectionsEndOfMonth)
 
-    return timeMatches && (shouldRepeatMonthCheck || shouldRepeatWeekCheck)
+    return (
+      timeMatches &&
+      (shouldRepeatDayCheck || shouldRepeatMonthCheck || shouldRepeatWeekCheck)
+    )
   } catch (e) {
     console.error(e)
   }

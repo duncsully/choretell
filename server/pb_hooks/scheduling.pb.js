@@ -12,7 +12,18 @@ cronAdd('choreResetter', '* * * * *', () => {
     console.log('Chores to check:', chores.length)
 
     chores.forEach((chore) => {
-      if (choreShouldReset(chore)) {
+      const completion = $app
+        .dao()
+        .findRecordsByFilter(
+          'completions',
+          `chore = '${chore.get('id')}'`,
+          '-created',
+          1
+        )[0]
+      const lastCompletedAt =
+        completion &&
+        new Date(completion.get('created').toString().replace(' ', 'T'))
+      if (choreShouldReset(chore, lastCompletedAt)) {
         console.log('Resetting chore:', chore.get('name'))
         chore.set('done', false)
         $app.dao().saveRecord(chore)
