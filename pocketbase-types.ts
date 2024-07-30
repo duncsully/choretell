@@ -93,6 +93,7 @@ export enum ChoresRepeatWeekdaysOptions {
 	"Sa" = "Sa",
 }
 export type ChoresRecord = {
+	count_from_completion?: boolean
 	cron_expr?: string
 	description?: HTMLString
 	done?: boolean
