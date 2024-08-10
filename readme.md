@@ -27,8 +27,7 @@ Requirements:
 On your host machine:
 
 1. Clone the repo
-2. `cd` into the repo and run `npm install`
-3. Set the environment variable `VITE_POCKETBASE_URL` (you can also do this in a .env file) to the host address you'll be accessing the app from (e.g. http://raspberrypi.local)
-4. Run `npm run build` to bundle the frontend with Vite
-5. If using your own PocketBase executable, place it in the `server` directory
-6. `cd server` and run `./yourPocketBaseExecutable serve` e.g. `./pocketbase serve` to start the PocketBase server. Refer to the [PocketBase documentation](https://pocketbase.io/docs/) for more information. Note that you'll need to specify the host address if you want to access Choretell from other devices.
+1. `cd` into the repo and run `npm install`
+1. Run `npm run build` to bundle the frontend with Vite
+1. If using your own PocketBase executable, place it in the `server` directory
+1. `cd server` and run `./yourPocketBaseExecutable serve` e.g. `./pocketbase serve` to start the PocketBase server. Refer to the [PocketBase documentation](https://pocketbase.io/docs/) for more information. Note that you'll need to specify the host address if you want to access Choretell from other devices.
