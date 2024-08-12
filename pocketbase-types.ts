@@ -9,6 +9,7 @@ export enum Collections {
 	Chores = "chores",
 	Completions = "completions",
 	LastCompletions = "last_completions",
+	PushSubscriptions = "push_subscriptions",
 	Users = "users",
 }
 
@@ -116,6 +117,11 @@ export type LastCompletionsRecord<Tlast_completed = unknown> = {
 	last_completed?: null | Tlast_completed
 }
 
+export type PushSubscriptionsRecord<Tsubscription_data = unknown> = {
+	subscription_data: null | Tsubscription_data
+	user: RecordIdString
+}
+
 export type UsersRecord = {
 	avatar?: string
 	name?: string
@@ -125,6 +131,7 @@ export type UsersRecord = {
 export type ChoresResponse<Texpand = unknown> = Required<ChoresRecord> & BaseSystemFields<Texpand>
 export type CompletionsResponse<Texpand = unknown> = Required<CompletionsRecord> & BaseSystemFields<Texpand>
 export type LastCompletionsResponse<Tlast_completed = unknown, Texpand = unknown> = Required<LastCompletionsRecord<Tlast_completed>> & BaseSystemFields<Texpand>
+export type PushSubscriptionsResponse<Tsubscription_data = unknown, Texpand = unknown> = Required<PushSubscriptionsRecord<Tsubscription_data>> & BaseSystemFields<Texpand>
 export type UsersResponse<Texpand = unknown> = Required<UsersRecord> & AuthSystemFields<Texpand>
 
 // Types containing all Records and Responses, useful for creating typing helper functions
@@ -133,6 +140,7 @@ export type CollectionRecords = {
 	chores: ChoresRecord
 	completions: CompletionsRecord
 	last_completions: LastCompletionsRecord
+	push_subscriptions: PushSubscriptionsRecord
 	users: UsersRecord
 }
 
@@ -140,6 +148,7 @@ export type CollectionResponses = {
 	chores: ChoresResponse
 	completions: CompletionsResponse
 	last_completions: LastCompletionsResponse
+	push_subscriptions: PushSubscriptionsResponse
 	users: UsersResponse
 }
 
@@ -150,5 +159,6 @@ export type TypedPocketBase = PocketBase & {
 	collection(idOrName: 'chores'): RecordService<ChoresResponse>
 	collection(idOrName: 'completions'): RecordService<CompletionsResponse>
 	collection(idOrName: 'last_completions'): RecordService<LastCompletionsResponse>
+	collection(idOrName: 'push_subscriptions'): RecordService<PushSubscriptionsResponse>
 	collection(idOrName: 'users'): RecordService<UsersResponse>
 }
