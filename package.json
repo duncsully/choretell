@@ -12,10 +12,12 @@
     "test": "vitest"
   },
   "devDependencies": {
+    "@types/web-push": "^3.6.3",
     "cross-env": "^7.0.3",
     "nodemon": "^3.1.4",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
+    "vite-plugin-pwa": "^0.20.1",
     "vitest": "^1.6.0"
   },
   "dependencies": {
@@ -24,6 +26,7 @@
     "date-fns": "^3.6.0",
     "lit-html": "^3.1.4",
     "pocketbase": "^0.21.3",
-    "solit": "file:solit-0.0.0.tgz"
+    "solit": "file:solit-0.0.0.tgz",
+    "web-push": "^3.6.7"
   }
 }
