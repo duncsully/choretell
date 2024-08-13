@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "start": "cd server && nodemon pocketbase.exe serve",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && vite build -c src_pb_hooks/vite-server.config.ts",
     "preview": "vite preview",
     "pb-typegen": "npx pocketbase-typegen --db ./server/pb_data/data.db",
     "test": "vitest"
