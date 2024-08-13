@@ -28,6 +28,7 @@ On your host machine:
 
 1. Clone the repo
 1. `cd` into the repo and run `npm install`
-1. Run `npm run build` to bundle the frontend with Vite
+1. If you want to use push notifications, you'll need to provide VAPID details in the `.env` file (keys can be generated with e.g. [web-push](https://www.npmjs.com/package/web-push))
+1. Run `npm run build` to bundle the frontend with Vite (and inject the VAPID keys, if defined, into the server)
 1. If using your own PocketBase executable, place it in the `server` directory
 1. `cd server` and run `./yourPocketBaseExecutable serve` e.g. `./pocketbase serve` to start the PocketBase server. Refer to the [PocketBase documentation](https://pocketbase.io/docs/) for more information. Note that you'll need to specify the host address if you want to access Choretell from other devices.
