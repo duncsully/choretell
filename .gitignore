@@ -23,8 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-.env
 server/choretell*
 server/pb_data/*
 server/pb_public/*
+server/pb_hooks/vapidConfig.js
 deploy.bat
