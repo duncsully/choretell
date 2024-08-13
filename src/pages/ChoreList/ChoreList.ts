@@ -19,6 +19,7 @@ import type { ChoreWithLastCompletion } from '../../types'
 import { formatDistance } from 'date-fns'
 import { ProfileModal } from './components/ProfileModal'
 import { user } from '../../App'
+import { registerPushNotifications } from './registerPushNotifications'
 
 // TODO: Empty UI
 // TODO: Error UI when fetching items fails (use until?)
@@ -29,6 +30,8 @@ const getLastCompletion = (chore: ChoreWithLastCompletion) =>
 
 export const ChoreListPage = component(() => {
   const chores = signal([] as ChoreWithLastCompletion[])
+
+  registerPushNotifications()
 
   effect(() => {
     console.log('fetching chores')
