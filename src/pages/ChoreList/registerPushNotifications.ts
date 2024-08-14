@@ -2,7 +2,7 @@ import { pb } from '../../globals'
 
 export const registerPushNotifications = async () => {
   try {
-    Notification.requestPermission()
+    await Notification.requestPermission()
     const registration = await navigator.serviceWorker.register(
       import.meta.env.MODE === 'production'
         ? '/service-worker.js'

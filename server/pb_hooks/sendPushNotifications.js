@@ -10,7 +10,6 @@ function sendPushNotifications(vapidConfig, subscriptions) {
     const data = JSON.parse(sub.get('subscription_data'))
     $os
       .cmd(
-        `npx`,
         'web-push',
         'send-notification',
         `--endpoint=${data.endpoint}`,
